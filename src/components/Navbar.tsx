@@ -16,7 +16,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Rider
+              🚗 Rider
             </Link>
           </div>
           
@@ -30,7 +30,7 @@ const Navbar = () => {
                     : 'text-gray-700 hover:text-blue-600'
                 }`}
               >
-                Home
+                🏠 Home
               </Link>
               <Link 
                 to="/book-ride" 
@@ -40,13 +40,23 @@ const Navbar = () => {
                     : 'text-gray-700 hover:text-blue-600'
                 }`}
               >
-                Book a Ride
+                🚙 Book a Ride
+              </Link>
+              <Link 
+                to="/ai-booking" 
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive('/ai-booking') 
+                    ? 'text-blue-600 bg-blue-50' 
+                    : 'text-gray-700 hover:text-blue-600'
+                }`}
+              >
+                🤖 AI Automated Booking
               </Link>
               <a href="#features" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Features
+                ✨ Features
               </a>
               <a href="#contact" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Contact
+                📞 Contact
               </a>
             </div>
           </div>
@@ -54,12 +64,12 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             <Link to="/driver-login">
               <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                Driver Login
+                🚗 Driver Login
               </Button>
             </Link>
             <Link to="/rider-login">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                Rider Login
+                👤 Rider Login
               </Button>
             </Link>
           </div>
@@ -87,7 +97,7 @@ const Navbar = () => {
                   : 'text-gray-700 hover:text-blue-600'
               }`}
             >
-              Home
+              🏠 Home
             </Link>
             <Link 
               to="/book-ride" 
@@ -97,23 +107,33 @@ const Navbar = () => {
                   : 'text-gray-700 hover:text-blue-600'
               }`}
             >
-              Book a Ride
+              🚙 Book a Ride
+            </Link>
+            <Link 
+              to="/ai-booking" 
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/ai-booking') 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              🤖 AI Automated Booking
             </Link>
             <a href="#features" className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-              Features
+              ✨ Features
             </a>
             <a href="#contact" className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-              Contact
+              📞 Contact
             </a>
             <div className="flex flex-col space-y-2 px-3 pt-2">
               <Link to="/driver-login">
                 <Button variant="outline" className="w-full text-blue-600 border-blue-600 hover:bg-blue-50">
-                  Driver Login
+                  🚗 Driver Login
                 </Button>
               </Link>
               <Link to="/rider-login">
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Rider Login
+                  👤 Rider Login
                 </Button>
               </Link>
             </div>
