@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Zap, Map } from "lucide-react";
+import { MapPin, Navigation, Zap, Map, Car } from "lucide-react";
 
 interface MapComponentProps {
   pickup: string;
@@ -15,8 +15,8 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
   const [mapboxToken, setMapboxToken] = useState('');
   const [showTokenInput, setShowTokenInput] = useState(false);
 
-  // Calculate mock coordinates for demo
-  const getCoordinates = (location: string) => {
+  // Calculate coordinates for locations (mock geocoding)
+  const getCoordinates = (location: string): [number, number] => {
     const locations: { [key: string]: [number, number] } = {
       'current location': [40.7128, -74.0060],
       'airport': [40.6413, -73.7781],
@@ -24,55 +24,148 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
       'mall': [40.7505, -73.9934],
       'train station': [40.7505, -73.9934],
       'hospital': [40.7794, -73.9632],
-      'university': [40.8075, -73.9626]
+      'university': [40.8075, -73.9626],
+      'city center': [40.7614, -73.9776],
+      'metro station': [40.7488, -73.9857],
+      'stadium': [40.8296, -73.9262],
+      'beach': [40.5755, -73.9707]
     };
     
-    const key = location.toLowerCase();
-    return locations[key] || [40.7128 + Math.random() * 0.1, -74.0060 + Math.random() * 0.1];
+    // Clean location string for matching
+    const cleanLocation = location.toLowerCase()
+      .replace(/📍|🎯|🏢|🏙️|🛍️|🚆|🏥|🎓|🏛️|🏪|🏟️|🏝️|🏠|🍕|☕|🎬|🏋️|💇/g, '')
+      .replace(/\s*-\s*.*/g, '') // Remove everything after dash
+      .replace(/\(.*\)/g, '') // Remove coordinates in parentheses
+      .trim();
+    
+    // Try to find exact match first
+    if (locations[cleanLocation]) {
+      return locations[cleanLocation];
+    }
+    
+    // Try partial matches
+    for (const [key, coords] of Object.entries(locations)) {
+      if (cleanLocation.includes(key) || key.includes(cleanLocation)) {
+        return coords;
+      }
+    }
+    
+    // Default to random nearby location
+    return [40.7128 + (Math.random() - 0.5) * 0.1, -74.0060 + (Math.random() - 0.5) * 0.1];
   };
 
   const renderOpenStreetMap = () => {
     const pickupCoords = pickup ? getCoordinates(pickup) : null;
     const destCoords = destination ? getCoordinates(destination) : null;
     
+    // Calculate center point if both locations are set
+    let centerLat = 40.7128;
+    let centerLng = -74.0060;
+    let zoomLevel = 12;
+    
+    if (pickupCoords && destCoords) {
+      centerLat = (pickupCoords[0] + destCoords[0]) / 2;
+      centerLng = (pickupCoords[1] + destCoords[1]) / 2;
+      zoomLevel = 11;
+    } else if (pickupCoords) {
+      centerLat = pickupCoords[0];
+      centerLng = pickupCoords[1];
+      zoomLevel = 13;
+    } else if (destCoords) {
+      centerLat = destCoords[0];
+      centerLng = destCoords[1];
+      zoomLevel = 13;
+    }
+    
+    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng-0.05},${centerLat-0.05},${centerLng+0.05},${centerLat+0.05}&layer=mapnik&marker=${centerLat},${centerLng}`;
+    
     return (
       <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg overflow-hidden border-2 border-green-200">
-        {/* OpenStreetMap simulation */}
-        <div className="absolute inset-0">
-          <iframe
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            scrolling="no"
-            marginHeight={0}
-            marginWidth={0}
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=-74.1,40.6,-73.9,40.8&marker=40.7128,-74.0060`}
-            className="rounded-lg"
-          />
+        {/* OpenStreetMap iframe */}
+        <iframe
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          scrolling="no"
+          marginHeight={0}
+          marginWidth={0}
+          src={mapUrl}
+          className="rounded-lg"
+          title="OpenStreetMap"
+        />
+        
+        {/* Overlay with markers and route info */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Pickup marker */}
+          {pickup && pickupCoords && (
+            <div 
+              className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none"
+              style={{
+                left: '30%',
+                top: '70%'
+              }}
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1 whitespace-nowrap max-w-32 truncate">
+                  📍 {pickup.length > 15 ? pickup.substring(0, 15) + '...' : pickup}
+                </div>
+                <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+              </div>
+            </div>
+          )}
+          
+          {/* Destination marker */}
+          {destination && destCoords && (
+            <div 
+              className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none"
+              style={{
+                left: '70%',
+                top: '30%'
+              }}
+            >
+              <div className="flex flex-col items-center">
+                <div className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1 whitespace-nowrap max-w-32 truncate">
+                  🎯 {destination.length > 15 ? destination.substring(0, 15) + '...' : destination}
+                </div>
+                <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+              </div>
+            </div>
+          )}
+          
+          {/* Route line */}
+          {pickup && destination && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none">
+              <path
+                d="M 30% 70% Q 50% 40% 70% 30%"
+                stroke="#3B82F6"
+                strokeWidth="3"
+                fill="none"
+                strokeDasharray="8,4"
+                className="animate-pulse"
+              />
+            </svg>
+          )}
+          
+          {/* Driver markers */}
+          <div className="absolute w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ left: '25%', top: '60%' }}>
+            <Car className="w-2 h-2 text-white" />
+          </div>
+          <div className="absolute w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ left: '75%', top: '50%', animationDelay: '0.5s' }}>
+            <Car className="w-2 h-2 text-white" />
+          </div>
+          <div className="absolute w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ left: '45%', top: '80%', animationDelay: '1s' }}>
+            <Car className="w-2 h-2 text-white" />
+          </div>
         </div>
         
-        {/* Overlay with route info */}
-        <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
-          <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 max-w-sm">
-            <div className="flex items-center gap-2 text-green-600 mb-2">
-              <Map className="h-5 w-5" />
-              <span className="font-semibold">OpenStreetMap</span>
-            </div>
-            {pickup && destination && (
-              <div className="text-sm space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>From: {pickup}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>To: {destination}</span>
-                </div>
-                <div className="text-gray-600 text-xs mt-2">
-                  Distance: ~{(Math.random() * 15 + 2).toFixed(1)} km
-                </div>
-              </div>
-            )}
+        {/* Map info overlay */}
+        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg pointer-events-auto">
+          <div className="flex items-center gap-2 text-sm">
+            <Map className="h-4 w-4 text-green-600" />
+            <span className="font-medium">OpenStreetMap</span>
+          </div>
+          <div className="text-xs text-gray-600 mt-1">
+            🚗 3 drivers nearby
           </div>
         </div>
       </div>
@@ -90,7 +183,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
         </div>
       </div>
       
-      {/* Mock route line */}
+      {/* Route line */}
       {pickup && destination && (
         <svg className="absolute inset-0 w-full h-full">
           <path
@@ -104,27 +197,27 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
         </svg>
       )}
       
-      {/* Mock pickup marker */}
+      {/* Pickup marker */}
       {pickup && (
-        <div className="absolute top-20 left-20 flex items-center gap-2">
+        <div className="absolute top-20 left-20 flex flex-col items-center">
+          <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1">
+            📍 {pickup.substring(0, 20)}
+          </div>
           <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-          <div className="bg-white px-2 py-1 rounded shadow text-xs font-medium">
-            Pickup: {pickup}
-          </div>
         </div>
       )}
       
-      {/* Mock destination marker */}
+      {/* Destination marker */}
       {destination && (
-        <div className="absolute bottom-20 right-20 flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-          <div className="bg-white px-2 py-1 rounded shadow text-xs font-medium">
-            Destination: {destination}
+        <div className="absolute bottom-20 right-20 flex flex-col items-center">
+          <div className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1">
+            🎯 {destination.substring(0, 20)}
           </div>
+          <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
         </div>
       )}
       
-      {/* Mock driver markers */}
+      {/* Driver markers */}
       <div className="absolute top-32 left-32 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce"></div>
       <div className="absolute top-48 right-32 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ animationDelay: '0.5s' }}></div>
       <div className="absolute bottom-32 left-48 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ animationDelay: '1s' }}></div>
@@ -136,7 +229,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           <span className="font-medium">Live Map Preview</span>
         </div>
         <div className="text-xs text-gray-600 mt-1">
-          3 drivers nearby
+          🚗 3 drivers nearby
         </div>
       </div>
     </div>
@@ -149,7 +242,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto">
             <MapPin className="h-6 w-6 text-blue-600" />
           </div>
-          <h3 className="text-lg font-semibold">Map Integration</h3>
+          <h3 className="text-lg font-semibold">🗺️ Map Integration</h3>
           <p className="text-sm text-gray-600">
             Choose your preferred map service for live tracking and navigation.
           </p>
@@ -164,7 +257,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
                 onClick={() => setMapboxToken('demo-token')}
                 className="flex-1"
               >
-                Use Mapbox
+                🗺️ Use Mapbox
               </Button>
               <Button 
                 variant="outline"
@@ -174,12 +267,12 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
                 }}
                 className="flex-1"
               >
-                Use OpenStreetMap (Free)
+                🌍 Use OpenStreetMap (Free)
               </Button>
             </div>
           </div>
           <p className="text-xs text-gray-500">
-            OpenStreetMap is free to use. Get Mapbox token at{' '}
+            🌍 OpenStreetMap is free to use. Get Mapbox token at{' '}
             <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
               mapbox.com
             </a>
@@ -198,7 +291,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           <div className="flex items-center gap-2">
             <Navigation className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium">
-              {useOpenStreetMap ? 'OpenStreetMap Active' : 'Live Tracking Active'}
+              {useOpenStreetMap ? '🌍 OpenStreetMap Active' : '🗺️ Live Tracking Active'}
             </span>
           </div>
           <Button 
@@ -206,19 +299,23 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
             size="sm" 
             onClick={() => setShowTokenInput(true)}
           >
-            Switch Map
+            🔄 Switch Map
           </Button>
         </div>
         
         {pickup && destination && (
-          <div className="mt-3 text-sm text-gray-600">
+          <div className="mt-3 text-sm text-gray-600 space-y-1">
             <div className="flex justify-between">
-              <span>Distance:</span>
+              <span>📏 Distance:</span>
               <span className="font-medium">~{(Math.random() * 15 + 2).toFixed(1)} km</span>
             </div>
             <div className="flex justify-between">
-              <span>Duration:</span>
+              <span>⏱️ Duration:</span>
               <span className="font-medium">~{Math.floor(Math.random() * 20 + 10)} mins</span>
+            </div>
+            <div className="flex justify-between">
+              <span>🚗 Drivers nearby:</span>
+              <span className="font-medium text-green-600">3 available</span>
             </div>
           </div>
         )}
