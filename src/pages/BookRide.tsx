@@ -2,22 +2,71 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { MapPin, Clock, User, DollarSign, Car, Truck, Users as UsersIcon } from "lucide-react";
+import { DollarSign, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import MapComponent from "@/components/MapComponent";
 import VehicleSelector from "@/components/VehicleSelector";
 import RideBookingForm from "@/components/RideBookingForm";
+import AIChatbot from "@/components/AIChatbot";
 
 const BookRide = () => {
   const [selectedVehicle, setSelectedVehicle] = useState('taxi');
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
   const [estimatedFare, setEstimatedFare] = useState(0);
+  const [femaleDriverPreference, setFemaleDriverPreference] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+
+  const handleBookRide = async () => {
+    setIsBooking(true);
+    
+    // Simulate booking process
+    const bookingData = {
+      pickup,
+      destination,
+      vehicleType: selectedVehicle,
+      estimatedFare,
+      femaleDriverPreference,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('Booking ride with data:', bookingData);
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      setIsBooking(false);
+      alert(`🚗 Ride booked successfully! 
+      
+Pickup: ${pickup}
+Destination: ${destination}
+Vehicle: ${selectedVehicle}
+Fare: $${estimatedFare.toFixed(2)}
+${femaleDriverPreference ? 'Female Driver: Requested' : ''}
+
+Driver will arrive in 5-8 minutes.`);
+    }, 2000);
+  };
+
+  const handleEmergency = () => {
+    alert('🚨 EMERGENCY SERVICES ACTIVATED! Your location has been shared with emergency contacts and local authorities.');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Navbar />
+      
+      {/* Emergency SOS Button */}
+      <div className="fixed top-20 left-4 z-40">
+        <Button
+          onClick={handleEmergency}
+          size="lg"
+          variant="destructive"
+          className="bg-red-500 hover:bg-red-600 shadow-lg rounded-full h-14 w-14"
+          title="Emergency SOS"
+        >
+          <AlertTriangle className="h-6 w-6" />
+        </Button>
+      </div>
       
       <div className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
@@ -45,6 +94,8 @@ const BookRide = () => {
                 selectedVehicle={selectedVehicle}
                 onVehicleSelect={setSelectedVehicle}
                 estimatedFare={estimatedFare}
+                femaleDriverPreference={femaleDriverPreference}
+                onFemaleDriverToggle={setFemaleDriverPreference}
               />
 
               <Card className="border-0 shadow-lg">
@@ -55,11 +106,31 @@ const BookRide = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Estimated Fare:</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      ${estimatedFare.toFixed(2)}
-                    </span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Base Fare:</span>
+                      <span className="text-lg font-semibold">
+                        ${estimatedFare.toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    {femaleDriverPreference && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Female Driver Surcharge:</span>
+                        <span className="text-lg font-semibold text-pink-600">
+                          +${(estimatedFare * 0.15).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <hr className="my-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 font-medium">Total Estimated Fare:</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        ${femaleDriverPreference ? (estimatedFare * 1.15).toFixed(2) : estimatedFare.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                   <div className="mt-4 text-sm text-gray-500">
                     *Final fare may vary based on traffic and route changes
@@ -70,9 +141,17 @@ const BookRide = () => {
               <Button 
                 size="lg" 
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg py-6"
-                disabled={!pickup || !destination}
+                disabled={!pickup || !destination || isBooking}
+                onClick={handleBookRide}
               >
-                Book Ride Now
+                {isBooking ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Booking Ride...
+                  </div>
+                ) : (
+                  'Book Ride Now'
+                )}
               </Button>
             </div>
 
@@ -83,6 +162,9 @@ const BookRide = () => {
           </div>
         </div>
       </div>
+      
+      {/* AI Chatbot */}
+      <AIChatbot />
     </div>
   );
 };

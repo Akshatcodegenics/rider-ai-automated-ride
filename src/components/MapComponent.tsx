@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Zap } from "lucide-react";
+import { MapPin, Navigation, Zap, Map } from "lucide-react";
 
 interface MapComponentProps {
   pickup: string;
@@ -11,10 +11,74 @@ interface MapComponentProps {
 }
 
 const MapComponent = ({ pickup, destination }: MapComponentProps) => {
+  const [useOpenStreetMap, setUseOpenStreetMap] = useState(true);
   const [mapboxToken, setMapboxToken] = useState('');
-  const [showTokenInput, setShowTokenInput] = useState(true);
+  const [showTokenInput, setShowTokenInput] = useState(false);
 
-  // Mock map placeholder with route visualization
+  // Calculate mock coordinates for demo
+  const getCoordinates = (location: string) => {
+    const locations: { [key: string]: [number, number] } = {
+      'current location': [40.7128, -74.0060],
+      'airport': [40.6413, -73.7781],
+      'downtown': [40.7589, -73.9851],
+      'mall': [40.7505, -73.9934],
+      'train station': [40.7505, -73.9934],
+      'hospital': [40.7794, -73.9632],
+      'university': [40.8075, -73.9626]
+    };
+    
+    const key = location.toLowerCase();
+    return locations[key] || [40.7128 + Math.random() * 0.1, -74.0060 + Math.random() * 0.1];
+  };
+
+  const renderOpenStreetMap = () => {
+    const pickupCoords = pickup ? getCoordinates(pickup) : null;
+    const destCoords = destination ? getCoordinates(destination) : null;
+    
+    return (
+      <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg overflow-hidden border-2 border-green-200">
+        {/* OpenStreetMap simulation */}
+        <div className="absolute inset-0">
+          <iframe
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            scrolling="no"
+            marginHeight={0}
+            marginWidth={0}
+            src={`https://www.openstreetmap.org/export/embed.html?bbox=-74.1,40.6,-73.9,40.8&marker=40.7128,-74.0060`}
+            className="rounded-lg"
+          />
+        </div>
+        
+        {/* Overlay with route info */}
+        <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 max-w-sm">
+            <div className="flex items-center gap-2 text-green-600 mb-2">
+              <Map className="h-5 w-5" />
+              <span className="font-semibold">OpenStreetMap</span>
+            </div>
+            {pickup && destination && (
+              <div className="text-sm space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>From: {pickup}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span>To: {destination}</span>
+                </div>
+                <div className="text-gray-600 text-xs mt-2">
+                  Distance: ~{(Math.random() * 15 + 2).toFixed(1)} km
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderMockMap = () => (
     <div className="relative w-full h-96 bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden">
       {/* Mock map background */}
@@ -78,7 +142,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
     </div>
   );
 
-  if (showTokenInput && !mapboxToken) {
+  if (showTokenInput && !mapboxToken && !useOpenStreetMap) {
     return (
       <Card className="p-6 border-0 shadow-lg">
         <div className="text-center space-y-4">
@@ -87,7 +151,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           </div>
           <h3 className="text-lg font-semibold">Map Integration</h3>
           <p className="text-sm text-gray-600">
-            To enable live maps, please enter your Mapbox public token or use the preview mode below.
+            Choose your preferred map service for live tracking and navigation.
           </p>
           <div className="space-y-3">
             <Input
@@ -100,19 +164,22 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
                 onClick={() => setMapboxToken('demo-token')}
                 className="flex-1"
               >
-                Use Map
+                Use Mapbox
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => setShowTokenInput(false)}
+                onClick={() => {
+                  setUseOpenStreetMap(true);
+                  setShowTokenInput(false);
+                }}
                 className="flex-1"
               >
-                Preview Mode
+                Use OpenStreetMap (Free)
               </Button>
             </div>
           </div>
           <p className="text-xs text-gray-500">
-            Get your free token at{' '}
+            OpenStreetMap is free to use. Get Mapbox token at{' '}
             <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
               mapbox.com
             </a>
@@ -124,16 +191,22 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
 
   return (
     <Card className="border-0 shadow-lg overflow-hidden">
-      {renderMockMap()}
+      {useOpenStreetMap ? renderOpenStreetMap() : renderMockMap()}
       
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Navigation className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium">Live Tracking Active</span>
+            <span className="text-sm font-medium">
+              {useOpenStreetMap ? 'OpenStreetMap Active' : 'Live Tracking Active'}
+            </span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowTokenInput(true)}>
-            Configure Map
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowTokenInput(true)}
+          >
+            Switch Map
           </Button>
         </div>
         
@@ -141,11 +214,11 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           <div className="mt-3 text-sm text-gray-600">
             <div className="flex justify-between">
               <span>Distance:</span>
-              <span className="font-medium">~12.3 km</span>
+              <span className="font-medium">~{(Math.random() * 15 + 2).toFixed(1)} km</span>
             </div>
             <div className="flex justify-between">
               <span>Duration:</span>
-              <span className="font-medium">~18 mins</span>
+              <span className="font-medium">~{Math.floor(Math.random() * 20 + 10)} mins</span>
             </div>
           </div>
         )}

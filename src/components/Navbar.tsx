@@ -52,12 +52,16 @@ const Navbar = () => {
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-              Driver Login
-            </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-              Rider Login
-            </Button>
+            <Link to="/driver-login">
+              <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
+                Driver Login
+              </Button>
+            </Link>
+            <Link to="/rider-login">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                Rider Login
+              </Button>
+            </Link>
           </div>
           
           <div className="md:hidden">
@@ -102,12 +106,16 @@ const Navbar = () => {
               Contact
             </a>
             <div className="flex flex-col space-y-2 px-3 pt-2">
-              <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                Driver Login
-              </Button>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                Rider Login
-              </Button>
+              <Link to="/driver-login">
+                <Button variant="outline" className="w-full text-blue-600 border-blue-600 hover:bg-blue-50">
+                  Driver Login
+                </Button>
+              </Link>
+              <Link to="/rider-login">
+                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  Rider Login
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
