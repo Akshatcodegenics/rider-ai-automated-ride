@@ -1,17 +1,23 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Car, Phone, Mail, Lock, User, MapPin, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Car, User, Phone, Mail, Lock, FileText, MapPin, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 
 const DriverLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn, signUp } = useAuth();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,14 +26,15 @@ const DriverLogin = () => {
     licenseNumber: '',
     vehicleType: '',
     vehicleNumber: '',
+    vehicleModel: '',
+    vehicleColor: '',
     city: ''
   });
 
   const [validation, setValidation] = useState({
     email: { isValid: false, message: '' },
     phone: { isValid: false, message: '' },
-    password: { isValid: false, message: '' },
-    license: { isValid: false, message: '' }
+    password: { isValid: false, message: '' }
   });
 
   const validateEmail = (email: string) => {
@@ -68,56 +75,86 @@ const DriverLogin = () => {
     return { isValid, message };
   };
 
-  const validateLicense = (license: string) => {
-    const licenseRegex = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,15}$/;
-    const isValid = licenseRegex.test(license.toUpperCase()) || license.length >= 10;
-    return {
-      isValid,
-      message: isValid ? 'Valid license format' : 'Please enter a valid driving license number'
-    };
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Real-time validation
     if (name === 'email') {
       setValidation(prev => ({ ...prev, email: validateEmail(value) }));
     } else if (name === 'phone') {
       setValidation(prev => ({ ...prev, phone: validatePhone(value) }));
     } else if (name === 'password') {
       setValidation(prev => ({ ...prev, password: validatePassword(value) }));
-    } else if (name === 'licenseNumber') {
-      setValidation(prev => ({ ...prev, license: validateLicense(value) }));
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate all fields
+    setLoading(true);
+
     const emailValidation = validateEmail(formData.email);
     const phoneValidation = validatePhone(formData.phone);
     const passwordValidation = validatePassword(formData.password);
-    const licenseValidation = !isLogin ? validateLicense(formData.licenseNumber) : { isValid: true };
 
-    if (!emailValidation.isValid || !phoneValidation.isValid || !passwordValidation.isValid || !licenseValidation.isValid) {
-      alert('Please fix all validation errors before submitting');
+    if (!emailValidation.isValid || !phoneValidation.isValid || !passwordValidation.isValid) {
+      toast.error('Please fix all validation errors before submitting');
+      setLoading(false);
       return;
     }
 
-    console.log('Driver form submitted:', formData);
-    
-    if (isLogin) {
-      // Simulate successful login
-      localStorage.setItem('driverLoggedIn', 'true');
-      localStorage.setItem('driverData', JSON.stringify(formData));
-      alert('🎉 Driver logged in successfully! Redirecting to driver panel...');
-      navigate('/driver-panel');
-    } else {
-      alert('🎉 Driver registration submitted for verification! You can now login once approved.');
-      setIsLogin(true);
+    try {
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('🎉 Driver logged in successfully!');
+          navigate('/driver-panel');
+        }
+      } else {
+        // Sign up the user first
+        const { data: authData, error: authError } = await signUp(formData.email, formData.password, {
+          full_name: formData.name,
+          phone: formData.phone,
+          role: 'driver'
+        });
+
+        if (authError) {
+          toast.error(authError.message);
+          setLoading(false);
+          return;
+        }
+
+        // If sign up successful, create driver profile
+        if (authData.user) {
+          const { error: driverError } = await supabase
+            .from('drivers')
+            .insert({
+              id: authData.user.id,
+              license_number: formData.licenseNumber,
+              vehicle_type: formData.vehicleType as any,
+              vehicle_number: formData.vehicleNumber,
+              vehicle_model: formData.vehicleModel,
+              vehicle_color: formData.vehicleColor,
+              city: formData.city,
+              status: 'offline',
+              is_verified: false
+            });
+
+          if (driverError) {
+            console.error('Error creating driver profile:', driverError);
+            toast.error('Account created but driver profile setup failed. Please contact support.');
+          } else {
+            toast.success('🎉 Driver account created successfully! Please wait for verification.');
+            setIsLogin(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -129,41 +166,70 @@ const DriverLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <Navbar />
       
       <div className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
           <Card className="border-0 shadow-2xl animate-fade-in">
-            <CardHeader className="text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+            <CardHeader className="text-center bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-t-lg">
               <CardTitle className="text-2xl flex items-center justify-center gap-2">
                 <Car className="h-6 w-6" />
-                {isLogin ? '🚗 Driver Login' : '🚕 Become a Driver'}
+                {isLogin ? '🚗 Driver Login' : '🎯 Join as Driver'}
               </CardTitle>
-              <p className="text-blue-100">
-                {isLogin ? 'Welcome back, driver! 👋' : 'Join our driver community 🚀'}
+              <p className="text-green-100">
+                {isLogin ? 'Welcome back, Driver! 👋' : 'Start earning with us 🚀'}
               </p>
             </CardHeader>
             
             <CardContent className="p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        className="pl-10"
-                        required
-                      />
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="name"
+                          name="name"
+                          type="text"
+                          placeholder="Enter your full name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          className="pl-10 pr-10"
+                          required
+                        />
+                        {formData.phone && (
+                          <div className="absolute right-3 top-3">
+                            {getValidationIcon(validation.phone)}
+                          </div>
+                        )}
+                      </div>
+                      {formData.phone && (
+                        <p className={`text-xs ${validation.phone.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                          {validation.phone.message}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 <div className="space-y-2">
@@ -189,33 +255,6 @@ const DriverLogin = () => {
                   {formData.email && (
                     <p className={`text-xs ${validation.email.isValid ? 'text-green-600' : 'text-red-600'}`}>
                       {validation.email.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    {formData.phone && (
-                      <div className="absolute right-3 top-3">
-                        {getValidationIcon(validation.phone)}
-                      </div>
-                    )}
-                  </div>
-                  {formData.phone && (
-                    <p className={`text-xs ${validation.phone.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                      {validation.phone.message}
                     </p>
                   )}
                 </div>
@@ -256,78 +295,96 @@ const DriverLogin = () => {
 
                 {!isLogin && (
                   <>
-                    <div className="space-y-2">
-                      <Label htmlFor="licenseNumber">Driving License Number</Label>
-                      <div className="relative">
-                        <Input
-                          id="licenseNumber"
-                          name="licenseNumber"
-                          type="text"
-                          placeholder="Enter license number (e.g., DL1420110012345)"
-                          value={formData.licenseNumber}
-                          onChange={handleInputChange}
-                          className="pr-10"
-                          required
-                        />
-                        {formData.licenseNumber && (
-                          <div className="absolute right-3 top-3">
-                            {getValidationIcon(validation.license)}
-                          </div>
-                        )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="licenseNumber">License Number</Label>
+                        <div className="relative">
+                          <FileText className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="licenseNumber"
+                            name="licenseNumber"
+                            type="text"
+                            placeholder="DL123456"
+                            value={formData.licenseNumber}
+                            onChange={handleInputChange}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
                       </div>
-                      {formData.licenseNumber && (
-                        <p className={`text-xs ${validation.license.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                          {validation.license.message}
-                        </p>
-                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleType">Vehicle Type</Label>
+                        <Select name="vehicleType" onValueChange={(value) => setFormData({...formData, vehicleType: value})} required>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bike">🏍️ Bike</SelectItem>
+                            <SelectItem value="auto">🛺 Auto</SelectItem>
+                            <SelectItem value="taxi">🚗 Taxi</SelectItem>
+                            <SelectItem value="premium">🚙 Premium</SelectItem>
+                            <SelectItem value="suv">🚐 SUV</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="vehicleType">Vehicle Type</Label>
-                      <select
-                        id="vehicleType"
-                        name="vehicleType"
-                        value={formData.vehicleType}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="">Select vehicle type</option>
-                        <option value="taxi">🚕 Taxi</option>
-                        <option value="cab">🚗 Premium Cab</option>
-                        <option value="auto">🛺 Auto Rickshaw</option>
-                        <option value="bike">🏍️ Bike</option>
-                        <option value="suv">🚙 SUV</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="vehicleNumber">Vehicle Number</Label>
-                      <Input
-                        id="vehicleNumber"
-                        name="vehicleNumber"
-                        type="text"
-                        placeholder="Enter vehicle number (e.g., DL01AB1234)"
-                        value={formData.vehicleNumber}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="city">Operating City</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleNumber">Vehicle Number</Label>
                         <Input
-                          id="city"
-                          name="city"
+                          id="vehicleNumber"
+                          name="vehicleNumber"
                           type="text"
-                          placeholder="Enter your operating city"
-                          value={formData.city}
+                          placeholder="MH01AB1234"
+                          value={formData.vehicleNumber}
                           onChange={handleInputChange}
-                          className="pl-10"
                           required
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleModel">Vehicle Model</Label>
+                        <Input
+                          id="vehicleModel"
+                          name="vehicleModel"
+                          type="text"
+                          placeholder="Honda City"
+                          value={formData.vehicleModel}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleColor">Vehicle Color</Label>
+                        <Input
+                          id="vehicleColor"
+                          name="vehicleColor"
+                          type="text"
+                          placeholder="White"
+                          value={formData.vehicleColor}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="city"
+                            name="city"
+                            type="text"
+                            placeholder="Mumbai"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            className="pl-10"
+                            required
+                          />
+                        </div>
                       </div>
                     </div>
                   </>
@@ -335,9 +392,10 @@ const DriverLogin = () => {
 
                 <Button 
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 transform hover:scale-105 transition-all duration-200"
                 >
-                  {isLogin ? '🚗 Login to Driver Panel' : '📋 Submit Application'}
+                  {loading ? 'Processing...' : (isLogin ? '🚗 Login to Dashboard' : '🎯 Create Driver Account')}
                 </Button>
               </form>
 
@@ -345,23 +403,23 @@ const DriverLogin = () => {
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-blue-600 hover:underline transition-colors"
+                  className="text-green-600 hover:underline transition-colors"
                 >
-                  {isLogin ? 'Want to become a driver? 🚀 Sign up' : 'Already a driver? 🔑 Login'}
+                  {isLogin ? "Don't have an account? 🚀 Sign up" : 'Already have an account? 🔑 Login'}
                 </button>
               </div>
 
               {!isLogin && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                  <p className="text-sm text-blue-800">
-                    <strong>📋 Verification Process:</strong> All driver applications undergo background checks, license validation, and vehicle inspection for safety.
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border-l-4 border-green-400">
+                  <p className="text-sm text-green-800">
+                    <strong>📋 KYC Required:</strong> Your documents will be verified before you can start accepting rides.
                   </p>
                 </div>
               )}
 
-              <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-800 text-center">
-                  🛡️ Your data is encrypted and secure. We follow strict privacy protocols.
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-800 text-center">
+                  🔒 Your data is secure and encrypted. We verify all driver documents for safety.
                 </p>
               </div>
             </CardContent>

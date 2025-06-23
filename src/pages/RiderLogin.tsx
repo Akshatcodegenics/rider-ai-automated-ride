@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Phone, Mail, Lock, MapPin, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 
 const RiderLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn, signUp } = useAuth();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -79,30 +83,51 @@ const RiderLogin = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setLoading(true);
+
     // Validate all fields
     const emailValidation = validateEmail(formData.email);
     const phoneValidation = validatePhone(formData.phone);
     const passwordValidation = validatePassword(formData.password);
 
     if (!emailValidation.isValid || !phoneValidation.isValid || !passwordValidation.isValid) {
-      alert('Please fix all validation errors before submitting');
+      toast.error('Please fix all validation errors before submitting');
+      setLoading(false);
       return;
     }
 
-    console.log('Rider form submitted:', formData);
-    
-    if (isLogin) {
-      // Simulate successful login
-      localStorage.setItem('riderLoggedIn', 'true');
-      localStorage.setItem('riderData', JSON.stringify(formData));
-      alert('🎉 Rider logged in successfully! Redirecting to book ride...');
-      navigate('/book-ride');
-    } else {
-      alert('🎉 Rider account created successfully! You can now login.');
-      setIsLogin(true);
+    try {
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('🎉 Logged in successfully!');
+          navigate('/book-ride');
+        }
+      } else {
+        const { error } = await signUp(formData.email, formData.password, {
+          full_name: formData.name,
+          phone: formData.phone,
+          emergency_contact: formData.emergencyContact,
+          home_address: formData.homeAddress,
+          role: 'rider'
+        });
+        
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('🎉 Account created successfully! Please check your email for verification.');
+          setIsLogin(true);
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -178,32 +203,34 @@ const RiderLogin = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="Enter your phone number"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      className="pl-10 pr-10"
-                      required
-                    />
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="pl-10 pr-10"
+                        required
+                      />
+                      {formData.phone && (
+                        <div className="absolute right-3 top-3">
+                          {getValidationIcon(validation.phone)}
+                        </div>
+                      )}
+                    </div>
                     {formData.phone && (
-                      <div className="absolute right-3 top-3">
-                        {getValidationIcon(validation.phone)}
-                      </div>
+                      <p className={`text-xs ${validation.phone.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                        {validation.phone.message}
+                      </p>
                     )}
                   </div>
-                  {formData.phone && (
-                    <p className={`text-xs ${validation.phone.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                      {validation.phone.message}
-                    </p>
-                  )}
-                </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
@@ -279,9 +306,10 @@ const RiderLogin = () => {
 
                 <Button 
                   type="submit"
+                  disabled={loading}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200"
                 >
-                  {isLogin ? '🚗 Login & Book Ride' : '🎯 Create Account'}
+                  {loading ? 'Processing...' : (isLogin ? '🚗 Login & Book Ride' : '🎯 Create Account')}
                 </Button>
               </form>
 
