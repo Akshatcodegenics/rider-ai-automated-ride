@@ -27,77 +27,77 @@ const RideBookingForm = ({
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false);
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false);
 
-  const popularDestinations = [
-    "🏢 Airport",
-    "🏙️ Downtown",
-    "🛍️ Mall",
-    "🚆 Train Station", 
-    "🏥 Hospital",
-    "🎓 University",
-    "🏛️ City Center",
-    "🏪 Metro Station",
-    "🏟️ Stadium",
-    "🏝️ Beach"
+  const popularIndianDestinations = [
+    "🏢 Mumbai Airport",
+    "🏙️ Connaught Place, Delhi",
+    "🛍️ Phoenix Mall, Bangalore",
+    "🚆 Mumbai Central Railway Station", 
+    "🏥 AIIMS Hospital",
+    "🎓 IIT Delhi",
+    "🏛️ India Gate, Delhi",
+    "🏪 Karol Bagh Metro Station",
+    "🏟️ Eden Gardens, Kolkata",
+    "🏝️ Marine Drive, Mumbai"
   ];
 
-  const commonPickupLocations = [
+  const commonIndianPickupLocations = [
     "🏠 Home",
     "🏢 Office", 
     "🏨 Hotel",
     "🍕 Restaurant",
-    "☕ Cafe",
-    "🏪 Store",
-    "🏥 Clinic",
-    "🎬 Cinema",
-    "🏋️ Gym",
-    "💇 Salon"
+    "☕ Cafe Coffee Day",
+    "🏪 Big Bazaar",
+    "🏥 Apollo Hospital",
+    "🎬 PVR Cinema",
+    "🏋️ Gold's Gym",
+    "💇 Lakme Salon"
   ];
 
-  // Mock location suggestions based on input
-  const getLocationSuggestions = (input: string, isPickup: boolean = true) => {
+  // Indian cities and landmarks for better suggestions
+  const getIndianLocationSuggestions = (input: string) => {
     if (!input.trim()) return [];
     
-    const suggestions = [
-      `${input} - Main Street`,
-      `${input} - City Center`,
-      `${input} - Near Mall`,
-      `${input} - Bus Stop`,
-      `${input} - Metro Station`
+    const indianLocations = [
+      `${input} - New Delhi`,
+      `${input} - Mumbai, Maharashtra`,
+      `${input} - Bangalore, Karnataka`,
+      `${input} - Hyderabad, Telangana`,
+      `${input} - Chennai, Tamil Nadu`,
+      `${input} - Kolkata, West Bengal`,
+      `${input} - Pune, Maharashtra`,
+      `${input} - Ahmedabad, Gujarat`
     ];
     
-    return suggestions.slice(0, 3);
+    return indianLocations.slice(0, 3);
   };
 
-  // Handle pickup input change and show suggestions
   const handlePickupChange = (value: string) => {
     setPickup(value);
     if (value.length > 2) {
-      setPickupSuggestions(getLocationSuggestions(value, true));
+      setPickupSuggestions(getIndianLocationSuggestions(value));
       setShowPickupSuggestions(true);
     } else {
       setShowPickupSuggestions(false);
     }
   };
 
-  // Handle destination input change and show suggestions
   const handleDestinationChange = (value: string) => {
     setDestination(value);
     if (value.length > 2) {
-      setDestinationSuggestions(getLocationSuggestions(value, false));
+      setDestinationSuggestions(getIndianLocationSuggestions(value));
       setShowDestinationSuggestions(true);
     } else {
       setShowDestinationSuggestions(false);
     }
   };
 
-  // Mock fare calculation
+  // Mock fare calculation in rupees
   useEffect(() => {
     if (pickup && destination) {
-      // Simple mock calculation - in real app, this would call a pricing API
-      const baseFare = 5;
-      const perMileFare = 2.5;
-      const mockDistance = Math.random() * 20 + 2; // 2-22 miles
-      const estimatedFare = baseFare + (mockDistance * perMileFare);
+      const baseFare = 40; // Base fare in rupees
+      const perKmFare = 12; // Per km fare in rupees
+      const mockDistance = Math.random() * 20 + 2; // 2-22 km
+      const estimatedFare = baseFare + (mockDistance * perKmFare);
       onEstimateChange(estimatedFare);
     } else {
       onEstimateChange(0);
@@ -110,17 +110,16 @@ const RideBookingForm = ({
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // In a real app, you'd reverse geocode these coordinates
           const { latitude, longitude } = position.coords;
           console.log('Current location:', latitude, longitude);
           
-          // Mock reverse geocoding
+          // Mock reverse geocoding for Indian location
           setPickup(`📍 Current Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
           setIsGettingLocation(false);
         },
         (error) => {
           console.error("Error getting location:", error);
-          alert('Unable to get your location. Please enter manually or enable location permissions.');
+          alert('Unable to get your location. Please enable location permissions or enter manually.');
           setIsGettingLocation(false);
         },
         {
@@ -149,7 +148,7 @@ const RideBookingForm = ({
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Input
-                placeholder="Enter pickup location..."
+                placeholder="Enter pickup location in India..."
                 value={pickup}
                 onChange={(e) => handlePickupChange(e.target.value)}
                 onFocus={() => pickup.length > 2 && setShowPickupSuggestions(true)}
@@ -191,9 +190,8 @@ const RideBookingForm = ({
             </Button>
           </div>
           
-          {/* Quick pickup options */}
           <div className="flex flex-wrap gap-1 mt-2">
-            {commonPickupLocations.slice(0, 4).map((location) => (
+            {commonIndianPickupLocations.slice(0, 4).map((location) => (
               <Button
                 key={location}
                 variant="outline"
@@ -211,7 +209,7 @@ const RideBookingForm = ({
           <label className="text-sm font-medium text-gray-700">🎯 Destination</label>
           <div className="relative">
             <Input
-              placeholder="Where are you going?"
+              placeholder="Where are you going in India?"
               value={destination}
               onChange={(e) => handleDestinationChange(e.target.value)}
               onFocus={() => destination.length > 2 && setShowDestinationSuggestions(true)}
@@ -238,9 +236,9 @@ const RideBookingForm = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">🔥 Popular Destinations</label>
+          <label className="text-sm font-medium text-gray-700">🔥 Popular Indian Destinations</label>
           <div className="grid grid-cols-2 gap-2">
-            {popularDestinations.map((dest) => (
+            {popularIndianDestinations.map((dest) => (
               <Button
                 key={dest}
                 variant="outline"

@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Zap, Map, Car } from "lucide-react";
+import { MapPin, Navigation, Map, Car } from "lucide-react";
 
 interface MapComponentProps {
   pickup: string;
@@ -15,53 +15,52 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
   const [mapboxToken, setMapboxToken] = useState('');
   const [showTokenInput, setShowTokenInput] = useState(false);
 
-  // Calculate coordinates for locations (mock geocoding)
-  const getCoordinates = (location: string): [number, number] => {
-    const locations: { [key: string]: [number, number] } = {
-      'current location': [40.7128, -74.0060],
-      'airport': [40.6413, -73.7781],
-      'downtown': [40.7589, -73.9851],
-      'mall': [40.7505, -73.9934],
-      'train station': [40.7505, -73.9934],
-      'hospital': [40.7794, -73.9632],
-      'university': [40.8075, -73.9626],
-      'city center': [40.7614, -73.9776],
-      'metro station': [40.7488, -73.9857],
-      'stadium': [40.8296, -73.9262],
-      'beach': [40.5755, -73.9707]
+  // Indian coordinates for major cities
+  const getIndianCoordinates = (location: string): [number, number] => {
+    const indianLocations: { [key: string]: [number, number] } = {
+      'current location': [28.6139, 77.2090], // Delhi
+      'mumbai airport': [19.0896, 72.8656],
+      'connaught place': [28.6315, 77.2167],
+      'phoenix mall': [12.9279, 77.6271],
+      'mumbai central': [18.9690, 72.8205],
+      'aiims hospital': [28.5672, 77.2100],
+      'iit delhi': [28.5458, 77.1918],
+      'india gate': [28.6129, 77.2295],
+      'karol bagh': [28.6516, 77.1929],
+      'eden gardens': [22.5647, 88.3433],
+      'marine drive': [18.9441, 72.8231],
+      'bangalore': [12.9716, 77.5946],
+      'hyderabad': [17.3850, 78.4867],
+      'chennai': [13.0827, 80.2707],
+      'kolkata': [22.5726, 88.3639],
+      'pune': [18.5204, 73.8567],
+      'ahmedabad': [23.0225, 72.5714],
+      'delhi': [28.6139, 77.2090]
     };
     
-    // Clean location string for matching
     const cleanLocation = location.toLowerCase()
       .replace(/📍|🎯|🏢|🏙️|🛍️|🚆|🏥|🎓|🏛️|🏪|🏟️|🏝️|🏠|🍕|☕|🎬|🏋️|💇/g, '')
-      .replace(/\s*-\s*.*/g, '') // Remove everything after dash
-      .replace(/\(.*\)/g, '') // Remove coordinates in parentheses
+      .replace(/\s*-\s*.*/g, '')
+      .replace(/\(.*\)/g, '')
       .trim();
     
-    // Try to find exact match first
-    if (locations[cleanLocation]) {
-      return locations[cleanLocation];
-    }
-    
-    // Try partial matches
-    for (const [key, coords] of Object.entries(locations)) {
+    for (const [key, coords] of Object.entries(indianLocations)) {
       if (cleanLocation.includes(key) || key.includes(cleanLocation)) {
         return coords;
       }
     }
     
-    // Default to random nearby location
-    return [40.7128 + (Math.random() - 0.5) * 0.1, -74.0060 + (Math.random() - 0.5) * 0.1];
+    // Default to Delhi with some random offset
+    return [28.6139 + (Math.random() - 0.5) * 0.1, 77.2090 + (Math.random() - 0.5) * 0.1];
   };
 
-  const renderOpenStreetMap = () => {
-    const pickupCoords = pickup ? getCoordinates(pickup) : null;
-    const destCoords = destination ? getCoordinates(destination) : null;
+  const renderIndianMap = () => {
+    const pickupCoords = pickup ? getIndianCoordinates(pickup) : null;
+    const destCoords = destination ? getIndianCoordinates(destination) : null;
     
-    // Calculate center point if both locations are set
-    let centerLat = 40.7128;
-    let centerLng = -74.0060;
-    let zoomLevel = 12;
+    let centerLat = 28.6139; // Delhi
+    let centerLng = 77.2090;
+    let zoomLevel = 10;
     
     if (pickupCoords && destCoords) {
       centerLat = (pickupCoords[0] + destCoords[0]) / 2;
@@ -80,8 +79,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
     const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${centerLng-0.05},${centerLat-0.05},${centerLng+0.05},${centerLat+0.05}&layer=mapnik&marker=${centerLat},${centerLng}`;
     
     return (
-      <div className="relative w-full h-96 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg overflow-hidden border-2 border-green-200">
-        {/* OpenStreetMap iframe */}
+      <div className="relative w-full h-96 bg-gradient-to-br from-orange-100 to-green-100 rounded-lg overflow-hidden border-2 border-orange-200">
         <iframe
           width="100%"
           height="100%"
@@ -91,12 +89,10 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           marginWidth={0}
           src={mapUrl}
           className="rounded-lg"
-          title="OpenStreetMap"
+          title="India Map"
         />
         
-        {/* Overlay with markers and route info */}
         <div className="absolute inset-0 pointer-events-none">
-          {/* Pickup marker */}
           {pickup && pickupCoords && (
             <div 
               className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none"
@@ -114,7 +110,6 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
             </div>
           )}
           
-          {/* Destination marker */}
           {destination && destCoords && (
             <div 
               className="absolute transform -translate-x-1/2 -translate-y-full pointer-events-none"
@@ -132,12 +127,11 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
             </div>
           )}
           
-          {/* Route line */}
           {pickup && destination && (
             <svg className="absolute inset-0 w-full h-full pointer-events-none">
               <path
                 d="M 30% 70% Q 50% 40% 70% 30%"
-                stroke="#3B82F6"
+                stroke="#FF6B35"
                 strokeWidth="3"
                 fill="none"
                 strokeDasharray="8,4"
@@ -146,7 +140,6 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
             </svg>
           )}
           
-          {/* Driver markers */}
           <div className="absolute w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ left: '25%', top: '60%' }}>
             <Car className="w-2 h-2 text-white" />
           </div>
@@ -158,82 +151,18 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           </div>
         </div>
         
-        {/* Map info overlay */}
         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg pointer-events-auto">
           <div className="flex items-center gap-2 text-sm">
-            <Map className="h-4 w-4 text-green-600" />
-            <span className="font-medium">OpenStreetMap</span>
+            <span className="text-orange-600">🇮🇳</span>
+            <span className="font-medium">India Map</span>
           </div>
           <div className="text-xs text-gray-600 mt-1">
-            🚗 3 drivers nearby
+            🚗 5 drivers nearby
           </div>
         </div>
       </div>
     );
   };
-
-  const renderMockMap = () => (
-    <div className="relative w-full h-96 bg-gradient-to-br from-blue-100 to-green-100 rounded-lg overflow-hidden">
-      {/* Mock map background */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="grid grid-cols-8 grid-rows-6 h-full">
-          {Array.from({ length: 48 }).map((_, i) => (
-            <div key={i} className="border border-gray-300"></div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Route line */}
-      {pickup && destination && (
-        <svg className="absolute inset-0 w-full h-full">
-          <path
-            d="M 100 300 Q 200 150 400 100"
-            stroke="#3B82F6"
-            strokeWidth="4"
-            fill="none"
-            strokeDasharray="8,4"
-            className="animate-pulse"
-          />
-        </svg>
-      )}
-      
-      {/* Pickup marker */}
-      {pickup && (
-        <div className="absolute top-20 left-20 flex flex-col items-center">
-          <div className="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1">
-            📍 {pickup.substring(0, 20)}
-          </div>
-          <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-        </div>
-      )}
-      
-      {/* Destination marker */}
-      {destination && (
-        <div className="absolute bottom-20 right-20 flex flex-col items-center">
-          <div className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1">
-            🎯 {destination.substring(0, 20)}
-          </div>
-          <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-        </div>
-      )}
-      
-      {/* Driver markers */}
-      <div className="absolute top-32 left-32 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce"></div>
-      <div className="absolute top-48 right-32 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ animationDelay: '0.5s' }}></div>
-      <div className="absolute bottom-32 left-48 w-3 h-3 bg-blue-500 rounded-full border border-white shadow animate-bounce" style={{ animationDelay: '1s' }}></div>
-      
-      {/* Map overlay info */}
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-        <div className="flex items-center gap-2 text-sm">
-          <Zap className="h-4 w-4 text-blue-600" />
-          <span className="font-medium">Live Map Preview</span>
-        </div>
-        <div className="text-xs text-gray-600 mt-1">
-          🚗 3 drivers nearby
-        </div>
-      </div>
-    </div>
-  );
 
   if (showTokenInput && !mapboxToken && !useOpenStreetMap) {
     return (
@@ -244,7 +173,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
           </div>
           <h3 className="text-lg font-semibold">🗺️ Map Integration</h3>
           <p className="text-sm text-gray-600">
-            Choose your preferred map service for live tracking and navigation.
+            Choose your preferred map service for live tracking and navigation in India.
           </p>
           <div className="space-y-3">
             <Input
@@ -267,16 +196,10 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
                 }}
                 className="flex-1"
               >
-                🌍 Use OpenStreetMap (Free)
+                🇮🇳 Use India Map (Free)
               </Button>
             </div>
           </div>
-          <p className="text-xs text-gray-500">
-            🌍 OpenStreetMap is free to use. Get Mapbox token at{' '}
-            <a href="https://mapbox.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-              mapbox.com
-            </a>
-          </p>
         </div>
       </Card>
     );
@@ -284,14 +207,14 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
 
   return (
     <Card className="border-0 shadow-lg overflow-hidden">
-      {useOpenStreetMap ? renderOpenStreetMap() : renderMockMap()}
+      {renderIndianMap()}
       
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Navigation className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium">
-              {useOpenStreetMap ? '🌍 OpenStreetMap Active' : '🗺️ Live Tracking Active'}
+              🇮🇳 India Live Tracking Active
             </span>
           </div>
           <Button 
@@ -315,7 +238,7 @@ const MapComponent = ({ pickup, destination }: MapComponentProps) => {
             </div>
             <div className="flex justify-between">
               <span>🚗 Drivers nearby:</span>
-              <span className="font-medium text-green-600">3 available</span>
+              <span className="font-medium text-green-600">5 available</span>
             </div>
           </div>
         )}

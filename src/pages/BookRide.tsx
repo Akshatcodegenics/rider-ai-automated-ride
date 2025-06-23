@@ -20,7 +20,6 @@ const BookRide = () => {
   const handleBookRide = async () => {
     setIsBooking(true);
     
-    // Simulate booking process
     const bookingData = {
       pickup,
       destination,
@@ -32,7 +31,6 @@ const BookRide = () => {
     
     console.log('Booking ride with data:', bookingData);
     
-    // Simulate API call delay
     setTimeout(() => {
       setIsBooking(false);
       alert(`🚗 Ride booked successfully! 
@@ -40,7 +38,7 @@ const BookRide = () => {
 Pickup: ${pickup}
 Destination: ${destination}
 Vehicle: ${selectedVehicle}
-Fare: $${estimatedFare.toFixed(2)}
+Fare: ₹${estimatedFare.toFixed(2)}
 ${femaleDriverPreference ? 'Female Driver: Requested' : ''}
 
 Driver will arrive in 5-8 minutes.`);
@@ -55,7 +53,6 @@ Driver will arrive in 5-8 minutes.`);
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Navbar />
       
-      {/* Emergency SOS Button */}
       <div className="fixed top-20 left-4 z-40">
         <Button
           onClick={handleEmergency}
@@ -80,7 +77,6 @@ Driver will arrive in 5-8 minutes.`);
           </div>
 
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left Panel - Booking Form */}
             <div className="space-y-6">
               <RideBookingForm 
                 pickup={pickup}
@@ -101,7 +97,7 @@ Driver will arrive in 5-8 minutes.`);
               <Card className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600">₹</span>
                     Fare Estimation
                   </CardTitle>
                 </CardHeader>
@@ -110,7 +106,7 @@ Driver will arrive in 5-8 minutes.`);
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Base Fare:</span>
                       <span className="text-lg font-semibold">
-                        ${estimatedFare.toFixed(2)}
+                        ₹{estimatedFare.toFixed(2)}
                       </span>
                     </div>
                     
@@ -118,7 +114,7 @@ Driver will arrive in 5-8 minutes.`);
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Female Driver Surcharge:</span>
                         <span className="text-lg font-semibold text-pink-600">
-                          +${(estimatedFare * 0.15).toFixed(2)}
+                          +₹{(estimatedFare * 0.15).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -128,7 +124,7 @@ Driver will arrive in 5-8 minutes.`);
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800 font-medium">Total Estimated Fare:</span>
                       <span className="text-2xl font-bold text-green-600">
-                        ${femaleDriverPreference ? (estimatedFare * 1.15).toFixed(2) : estimatedFare.toFixed(2)}
+                        ₹{femaleDriverPreference ? (estimatedFare * 1.15).toFixed(2) : estimatedFare.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -155,7 +151,6 @@ Driver will arrive in 5-8 minutes.`);
               </Button>
             </div>
 
-            {/* Right Panel - Map */}
             <div className="lg:sticky lg:top-24 h-fit">
               <MapComponent pickup={pickup} destination={destination} />
             </div>
@@ -163,7 +158,6 @@ Driver will arrive in 5-8 minutes.`);
         </div>
       </div>
       
-      {/* AI Chatbot */}
       <AIChatbot />
     </div>
   );
