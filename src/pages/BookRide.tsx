@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { DollarSign, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import RealisticMapComponent from "@/components/RealisticMapComponent";
+import MapComponent from "@/components/MapComponent";
 import VehicleSelector from "@/components/VehicleSelector";
-import EnhancedRideBookingForm from "@/components/EnhancedRideBookingForm";
-import EnhancedAIChatbot from "@/components/EnhancedAIChatbot";
+import RideBookingForm from "@/components/RideBookingForm";
+import AIChatbot from "@/components/AIChatbot";
 
 const BookRide = () => {
   const [selectedVehicle, setSelectedVehicle] = useState('taxi');
@@ -78,7 +78,7 @@ Driver will arrive in 5-8 minutes.`);
 
           <div className="grid lg:grid-cols-2 gap-8">
             <div className="space-y-6">
-              <EnhancedRideBookingForm 
+              <RideBookingForm 
                 pickup={pickup}
                 setPickup={setPickup}
                 destination={destination}
@@ -152,13 +152,13 @@ Driver will arrive in 5-8 minutes.`);
             </div>
 
             <div className="lg:sticky lg:top-24 h-fit">
-              <RealisticMapComponent pickup={pickup} destination={destination} />
+              <MapComponent pickup={pickup} destination={destination} />
             </div>
           </div>
         </div>
       </div>
       
-      <EnhancedAIChatbot />
+      <AIChatbot />
     </div>
   );
 };
