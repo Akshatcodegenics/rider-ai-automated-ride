@@ -72,50 +72,59 @@ const RealisticMapComponent = ({
     if (!mapContainer.current) return;
 
     try {
-      // Fixed map style with proper version type
+      // Fixed map style with proper source and layer separation
+      const sources: Record<string, maplibregl.SourceSpecification> = {
+        'osm-tiles': {
+          type: 'raster',
+          tiles: ['https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution: '© OpenStreetMap contributors'
+        }
+      };
+
+      const layers: maplibregl.LayerSpecification[] = [
+        {
+          id: 'osm-tiles',
+          type: 'raster',
+          source: 'osm-tiles'
+        }
+      ];
+
+      // Add weather overlay source and layer if needed
+      if (weatherCondition !== 'clear') {
+        sources['weather-overlay'] = {
+          type: 'geojson',
+          data: {
+            type: 'Feature' as const,
+            properties: {},
+            geometry: {
+              type: 'Polygon' as const,
+              coordinates: [[
+                [center[0] - 0.1, center[1] - 0.1],
+                [center[0] + 0.1, center[1] - 0.1],
+                [center[0] + 0.1, center[1] + 0.1],
+                [center[0] - 0.1, center[1] + 0.1],
+                [center[0] - 0.1, center[1] - 0.1]
+              ]]
+            }
+          }
+        };
+
+        layers.push({
+          id: 'weather-overlay',
+          type: 'fill',
+          source: 'weather-overlay',
+          paint: {
+            'fill-color': weatherCondition === 'rain' ? '#4A90E2' : '#9E9E9E',
+            'fill-opacity': 0.1
+          }
+        });
+      }
+
       const mapStyle: maplibregl.StyleSpecification = {
         version: 8 as const,
-        sources: {
-          'osm-tiles': {
-            type: 'raster',
-            tiles: ['https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-          }
-        },
-        layers: [
-          {
-            id: 'osm-tiles',
-            type: 'raster',
-            source: 'osm-tiles'
-          },
-          // Weather overlay
-          ...(weatherCondition !== 'clear' ? [{
-            id: 'weather-overlay',
-            type: 'fill' as const,
-            source: {
-              type: 'geojson' as const,
-              data: {
-                type: 'Feature' as const,
-                properties: {},
-                geometry: {
-                  type: 'Polygon' as const,
-                  coordinates: [[
-                    [center[0] - 0.1, center[1] - 0.1],
-                    [center[0] + 0.1, center[1] - 0.1],
-                    [center[0] + 0.1, center[1] + 0.1],
-                    [center[0] - 0.1, center[1] + 0.1],
-                    [center[0] - 0.1, center[1] - 0.1]
-                  ]]
-                }
-              }
-            },
-            paint: {
-              'fill-color': weatherCondition === 'rain' ? '#4A90E2' : '#9E9E9E',
-              'fill-opacity': 0.1
-            }
-          }] : [])
-        ]
+        sources,
+        layers
       };
 
       map.current = new maplibregl.Map({
