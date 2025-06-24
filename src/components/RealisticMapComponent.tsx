@@ -5,7 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapStyles.css';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Navigation, Car, MapPin, AlertTriangle, Route, Zap, Badge } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Navigation, Car, MapPin, AlertTriangle, Route, Zap } from "lucide-react";
 
 interface RealisticMapComponentProps {
   pickup?: string;
@@ -71,9 +72,9 @@ const RealisticMapComponent = ({
     if (!mapContainer.current) return;
 
     try {
-      // Enhanced map style with weather effects
-      const mapStyle = {
-        version: 8,
+      // Fixed map style with proper version type
+      const mapStyle: maplibregl.StyleSpecification = {
+        version: 8 as const,
         sources: {
           'osm-tiles': {
             type: 'raster',
@@ -91,13 +92,14 @@ const RealisticMapComponent = ({
           // Weather overlay
           ...(weatherCondition !== 'clear' ? [{
             id: 'weather-overlay',
-            type: 'fill',
+            type: 'fill' as const,
             source: {
-              type: 'geojson',
+              type: 'geojson' as const,
               data: {
-                type: 'Feature',
+                type: 'Feature' as const,
+                properties: {},
                 geometry: {
-                  type: 'Polygon',
+                  type: 'Polygon' as const,
                   coordinates: [[
                     [center[0] - 0.1, center[1] - 0.1],
                     [center[0] + 0.1, center[1] - 0.1],
@@ -293,7 +295,7 @@ const RealisticMapComponent = ({
   const addDemandHeatmap = (center: [number, number]) => {
     if (!map.current) return;
 
-    const heatmapData = {
+    const heatmapData: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
       features: Array.from({ length: 50 }, (_, i) => ({
         type: 'Feature',
