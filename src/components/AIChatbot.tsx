@@ -1,337 +1,422 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, Send, X, AlertTriangle, Phone, MessageSquare, Bot } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, Send, Bot, User, X, Mic, MicOff, Zap, MapPin, Car, Calendar, Gift } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
-  text: string;
-  sender: 'user' | 'bot';
+  type: 'user' | 'bot';
+  content: string;
   timestamp: Date;
+  quickActions?: QuickAction[];
+  isVoice?: boolean;
+}
+
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  action: () => void;
 }
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: 'Hello! I\'m your Rider AI assistant powered by advanced AI. I can help you book rides, answer questions about transportation, provide safety tips, or handle emergencies. How can I assist you today?',
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
-  const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showApiInput, setShowApiInput] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Initialize AI chatbot with enhanced features
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        type: 'bot',
+        content: "Hi! I'm your smart ride assistant! 🚗✨ I can help you book rides, find the best routes, split payments, schedule trips, and much more. What would you like to do today?",
+        timestamp: new Date(),
+        quickActions: [
+          {
+            id: 'book-ride',
+            label: 'Book Ride',
+            icon: <Car className="h-4 w-4" />,
+            action: () => handleQuickAction("I want to book a ride")
+          },
+          {
+            id: 'find-route',
+            label: 'Best Route',
+            icon: <MapPin className="h-4 w-4" />,
+            action: () => handleQuickAction("Show me the best route options")
+          },
+          {
+            id: 'schedule',
+            label: 'Schedule Ride',
+            icon: <Calendar className="h-4 w-4" />,
+            action: () => handleQuickAction("I want to schedule a ride for later")
+          },
+          {
+            id: 'rewards',
+            label: 'My Rewards',
+            icon: <Gift className="h-4 w-4" />,
+            action: () => handleQuickAction("Show my loyalty points and rewards")
+          }
+        ]
+      };
+      setMessages([welcomeMessage]);
+    }
+
+    // Initialize speech recognition
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      const recognitionInstance = new SpeechRecognitionAPI() as SpeechRecognition;
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = 'en-IN';
+      
+      recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0][0].transcript;
+        setInputValue(transcript);
+        handleSendMessage(transcript, true);
+      };
+
+      recognitionInstance.onerror = () => {
+        setIsListening(false);
+        toast({
+          title: "Voice input failed",
+          description: "Please try again or type your message",
+          variant: "destructive"
+        });
+      };
+
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(recognitionInstance);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSOS = () => {
-    const sosMessage: Message = {
-      id: Date.now().toString(),
-      text: '🚨 SOS EMERGENCY ACTIVATED! 🚨 Your location has been shared with emergency contacts and local authorities. Emergency services have been notified. Stay calm, help is on the way. If you can safely do so, call 911 immediately.',
-      sender: 'bot',
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, sosMessage]);
-    
-    // Simulate emergency services activation
-    console.log('SOS ACTIVATED: Emergency services contacted');
-    // In a real app, this would contact emergency services
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        console.log('Emergency location:', position.coords.latitude, position.coords.longitude);
-      });
-    }
-    alert('🚨 EMERGENCY ALERT: Your location has been shared with emergency contacts and authorities!');
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getBotResponse = async (userMessage: string): Promise<string> => {
-    // If API key is available, use Perplexity AI
-    if (apiKey) {
-      try {
-        const response = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-sonar-small-128k-online',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a helpful ride-sharing assistant for the Rider app. Help users with booking rides, safety tips, transportation advice, and general questions. Be concise and friendly. Always prioritize user safety.'
-              },
-              {
-                role: 'user',
-                content: userMessage
-              }
-            ],
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 500,
-            return_images: false,
-            return_related_questions: false,
-            frequency_penalty: 1,
-            presence_penalty: 0
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return data.choices[0]?.message?.content || 'I apologize, but I encountered an issue. Please try asking your question again.';
-        }
-      } catch (error) {
-        console.error('Perplexity API error:', error);
-      }
-    }
-
-    // Enhanced fallback responses with more comprehensive coverage
-    const lowercaseMessage = userMessage.toLowerCase();
-    
-    // Ride booking related
-    if (lowercaseMessage.includes('book') || lowercaseMessage.includes('ride')) {
-      return '🚗 I can help you book a ride! Please specify your pickup location and destination. You can also choose from different vehicle types like taxi, auto-rickshaw, or premium cab. Would you like me to guide you through the booking process?';
-    }
-    
-    // Emergency and safety
-    if (lowercaseMessage.includes('emergency') || lowercaseMessage.includes('help') || lowercaseMessage.includes('sos') || lowercaseMessage.includes('unsafe')) {
-      return '🚨 If this is an emergency, please use the red SOS button immediately! For safety concerns: share your trip with trusted contacts, verify driver details before getting in, and always wear a seatbelt. I\'m here to help with any safety questions.';
-    }
-    
-    // Female driver requests
-    if (lowercaseMessage.includes('female driver') || lowercaseMessage.includes('woman driver')) {
-      return '👩‍🚗 You can request a female driver during booking for added comfort and safety. This option is available in the vehicle selection screen. Female drivers undergo the same verification process and are highly rated by our community.';
-    }
-    
-    // Pricing and fares
-    if (lowercaseMessage.includes('price') || lowercaseMessage.includes('fare') || lowercaseMessage.includes('cost') || lowercaseMessage.includes('money')) {
-      return '💰 Ride fares are calculated based on distance, time, and vehicle type. You can see an instant estimate before booking. Factors affecting price: base fare, per-mile rate, time charges, and surge pricing during peak hours. Female driver option adds a 15% premium for enhanced safety.';
-    }
-    
-    // Cancellation
-    if (lowercaseMessage.includes('cancel')) {
-      return '❌ You can cancel your ride before the driver arrives. Cancellation fees may apply if cancelled after driver acceptance. To cancel: go to your active ride and tap "Cancel Ride". Free cancellations are available within 2 minutes of booking.';
-    }
-    
-    // Driver information
-    if (lowercaseMessage.includes('driver') && !lowercaseMessage.includes('female')) {
-      return '🚗 All our drivers are verified with background checks, valid licenses, and vehicle inspections. You can see driver ratings, vehicle details, and estimated arrival time. Feel free to contact them through the app for coordination.';
-    }
-    
-    // Payment methods
-    if (lowercaseMessage.includes('payment') || lowercaseMessage.includes('pay')) {
-      return '💳 We accept multiple payment methods: credit/debit cards, digital wallets, UPI, and cash. You can add payment methods in your profile. Payments are processed automatically after ride completion with instant receipts.';
-    }
-    
-    // AI booking
-    if (lowercaseMessage.includes('ai booking') || lowercaseMessage.includes('automated')) {
-      return '🤖 Our AI Automated Booking lets you set up recurring rides for regular routes! Perfect for daily commutes, weekly appointments, or monthly trips. The AI handles driver assignment, route optimization, and scheduling automatically.';
-    }
-    
-    // Location and navigation
-    if (lowercaseMessage.includes('location') || lowercaseMessage.includes('gps') || lowercaseMessage.includes('navigation')) {
-      return '📍 I can help with location services! Make sure location permissions are enabled for accurate pickup. You can use current location, enter addresses manually, or select from popular destinations like Airport, Mall, Train Station.';
-    }
-    
-    // Ratings and reviews
-    if (lowercaseMessage.includes('rating') || lowercaseMessage.includes('review')) {
-      return '⭐ After each ride, both you and the driver can rate each other (1-5 stars) and leave feedback. This helps maintain service quality and builds trust in our community. Your rating affects driver matching priority.';
-    }
-
-    // Greetings
-    if (lowercaseMessage.includes('hello') || lowercaseMessage.includes('hi') || lowercaseMessage.includes('hey')) {
-      return '👋 Hello! Welcome to Rider! I\'m your AI assistant ready to help with ride bookings, safety questions, fare estimates, or any transportation needs. What can I do for you today?';
-    }
-
-    // Default intelligent responses
-    const contextualResponses = [
-      '🤔 I understand you need assistance. Could you provide more details about what you\'re looking for? I can help with ride booking, safety features, pricing, driver information, or general transportation questions.',
-      '🚗 I\'m here to make your ride experience better! Whether you need to book a ride, understand our safety features, check fare estimates, or have questions about our services, just let me know.',
-      '💡 Let me help you with that! I can assist with booking rides, explaining our features like female driver options, SOS safety, pricing details, or any other questions about using Rider.',
-      '📱 Great question! I can help you navigate our app features, book rides, understand safety options, check pricing, or provide information about our drivers and vehicles. What specific help do you need?'
-    ];
-    
-    return contextualResponses[Math.floor(Math.random() * contextualResponses.length)];
+  const handleQuickAction = (message: string) => {
+    handleSendMessage(message);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+  const handleSendMessage = (content?: string, isVoice = false) => {
+    const messageContent = content || inputValue.trim();
+    if (!messageContent) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date()
+      type: 'user',
+      content: messageContent,
+      timestamp: new Date(),
+      isVoice
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputText('');
+    setInputValue('');
     setIsTyping(true);
 
-    // Simulate typing delay for better UX
-    setTimeout(async () => {
-      const botResponse = await getBotResponse(inputText);
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: botResponse,
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, botMessage]);
+    // Simulate AI response with intelligent logic
+    setTimeout(() => {
+      const botResponse = generateAIResponse(messageContent);
+      setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
-    }, 1500);
+    }, 1000 + Math.random() * 1000);
   };
 
-  const quickActions = [
-    { text: '🚗 Book a ride', action: () => setInputText('I want to book a ride') },
-    { text: '👩‍🚗 Female driver', action: () => setInputText('I need a female driver') },
-    { text: '💰 Fare estimate', action: () => setInputText('How much will my ride cost?') },
-    { text: '❌ Cancel ride', action: () => setInputText('How do I cancel my ride?') },
-    { text: '🛡️ Safety tips', action: () => setInputText('What safety features do you have?') },
-    { text: '🤖 AI booking', action: () => setInputText('Tell me about AI automated booking') }
-  ];
+  const generateAIResponse = (userInput: string): Message => {
+    const input = userInput.toLowerCase();
+    let content = '';
+    let quickActions: QuickAction[] = [];
 
-  if (!isOpen) {
-    return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button
-          onClick={() => setIsOpen(true)}
-          size="lg"
-          className="rounded-full h-14 w-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg animate-pulse"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
-      </div>
-    );
-  }
+    // Enhanced AI logic with contextual responses
+    if (input.includes('book') || input.includes('ride')) {
+      content = "I'll help you book a ride! 🚗 To get started, I need your pickup and destination locations. You can also use voice commands by saying 'Book a ride from [pickup] to [destination]'. Would you like me to detect your current location?";
+      quickActions = [
+        {
+          id: 'current-location',
+          label: 'Use Current Location',
+          icon: <MapPin className="h-4 w-4" />,
+          action: () => handleQuickAction("Use my current location as pickup")
+        },
+        {
+          id: 'voice-booking',
+          label: 'Voice Booking',
+          icon: <Mic className="h-4 w-4" />,
+          action: () => handleQuickAction("I want to use voice booking")
+        }
+      ];
+    } else if (input.includes('route') || input.includes('path')) {
+      content = "I can show you multiple route options with real-time traffic, tolls, and eco-friendly alternatives! 🛣️ Each route includes:\n\n• Time estimates with traffic\n• Toll costs\n• Carbon footprint\n• Weather considerations\n\nWhich locations do you want routes between?";
+      quickActions = [
+        {
+          id: 'fastest-route',
+          label: 'Fastest Route',
+          icon: <Zap className="h-4 w-4" />,
+          action: () => handleQuickAction("Show me the fastest route")
+        }
+      ];
+    } else if (input.includes('schedule') || input.includes('later')) {
+      content = "Great! I can help you schedule rides in advance with smart reminders! 📅 You can:\n\n• Set one-time or recurring rides\n• Get traffic-aware notifications\n• Auto-adjust for weather conditions\n\nWhen would you like to schedule your ride?";
+      quickActions = [
+        {
+          id: 'schedule-tomorrow',
+          label: 'Tomorrow Morning',
+          icon: <Calendar className="h-4 w-4" />,
+          action: () => handleQuickAction("Schedule a ride for tomorrow morning")
+        }
+      ];
+    } else if (input.includes('split') || input.includes('payment')) {
+      content = "I can help you split ride costs with friends! 💰 Features include:\n\n• Equal or custom splits\n• QR code sharing\n• UPI, card, wallet payments\n• Real-time payment tracking\n\nHow many people are sharing this ride?";
+    } else if (input.includes('reward') || input.includes('points') || input.includes('loyalty')) {
+      content = "Here's your loyalty status! 🏆\n\n• Current points: 1,250 🪙\n• Next reward: Free ride at 1,500 points\n• Badges earned: 5/12\n• Eco rides: 15 🌱\n\nYou're 250 points away from a free ride! Take 5 more rides to unlock it.";
+      quickActions = [
+        {
+          id: 'view-rewards',
+          label: 'View All Rewards',
+          icon: <Gift className="h-4 w-4" />,
+          action: () => handleQuickAction("Show all available rewards")
+        }
+      ];
+    } else if (input.includes('driver') || input.includes('eta')) {
+      content = "I can show you nearby drivers with detailed info! 🚗👨‍✈️\n\n• Real-time locations\n• Driver ratings & reviews\n• Vehicle details\n• Estimated arrival times\n• Safety scores\n\nCurrently 8 drivers available in your area with average ETA of 4 minutes.";
+    } else if (input.includes('safety') || input.includes('emergency')) {
+      content = "Your safety is our priority! 🛡️ Available features:\n\n• Emergency SOS button\n• Live location sharing\n• Driver verification\n• 24/7 support\n• Trip monitoring\n\nThe SOS button is always visible in the top-left corner for instant emergency assistance.";
+    } else if (input.includes('eco') || input.includes('environment') || input.includes('green')) {
+      content = "Love your eco-consciousness! 🌱 Green features include:\n\n• Eco-friendly route options\n• Carbon footprint tracking\n• Electric vehicle options\n• Carpooling suggestions\n• Green rewards & badges\n\nYour eco-score: 85/100 - Keep it up!";
+    } else if (input.includes('price') || input.includes('cost') || input.includes('fare')) {
+      content = "Smart pricing with transparency! 💰 Features:\n\n• Real-time fare estimates\n• Dynamic pricing alerts\n• Multiple route cost comparison\n• Toll and traffic cost breakdown\n• Payment splitting options\n\nI can show exact costs once you provide pickup and destination.";
+    } else if (input.includes('weather') || input.includes('rain') || input.includes('traffic')) {
+      content = "Smart routing considers live conditions! 🌦️\n\n• Real-time weather updates\n• Traffic pattern analysis\n• Route adjustments for conditions\n• Driver notifications\n• ETA updates\n\nCurrent conditions: Light traffic, clear weather. Perfect for your ride!";
+    } else if (input.includes('cancel') || input.includes('refund')) {
+      content = "I can help with cancellations and refunds! 📋\n\n• Free cancellation within 5 minutes\n• Instant refunds for eligible cancellations\n• Rescheduling options\n• Driver compensation for late cancellations\n\nNeed to cancel a current or scheduled ride?";
+    } else if (input.includes('help') || input.includes('support')) {
+      content = "I'm here to help with everything! 🤖 I can assist with:\n\n🚗 Booking & scheduling rides\n🛣️ Route planning & optimization\n💰 Payments & splitting costs\n🏆 Rewards & loyalty points\n🛡️ Safety features\n🌱 Eco-friendly options\n📱 Voice commands\n\nWhat specific help do you need?";
+    } else if (input.includes('voice') || input.includes('speak')) {
+      content = "Voice features are active! 🎙️ You can:\n\n• Say 'Book a ride from [pickup] to [destination]'\n• Use voice for location input\n• Get audio confirmations\n• Hands-free interaction\n\nTry the microphone button to start voice booking!";
+      quickActions = [
+        {
+          id: 'start-voice',
+          label: 'Start Voice Command',
+          icon: <Mic className="h-4 w-4" />,
+          action: () => startListening()
+        }
+      ];
+    } else {
+      // Default intelligent response
+      content = "I understand you're looking for assistance! 🤖 I'm equipped with advanced AI to help with:\n\n• Intelligent ride booking\n• Smart route optimization\n• Payment solutions\n• Ride scheduling\n• Loyalty rewards\n• Safety features\n\nCould you be more specific about what you'd like to do?";
+      quickActions = [
+        {
+          id: 'main-features',
+          label: 'Show Main Features',
+          icon: <Zap className="h-4 w-4" />,
+          action: () => handleQuickAction("Show me all main features")
+        }
+      ];
+    }
+
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content,
+      timestamp: new Date(),
+      quickActions
+    };
+  };
+
+  const startListening = () => {
+    if (recognition && !isListening) {
+      setIsListening(true);
+      recognition.start();
+      toast({
+        title: "🎙️ Listening...",
+        description: "Speak your request clearly",
+      });
+    }
+  };
+
+  const stopListening = () => {
+    if (recognition && isListening) {
+      recognition.stop();
+      setIsListening(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 h-96">
-      <Card className="h-full border-0 shadow-2xl">
-        <CardHeader className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              Rider AI Assistant
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowApiInput(!showApiInput)}
-                size="sm"
-                variant="ghost"
-                className="text-white hover:bg-white/20 h-8 px-2 text-xs"
-                title="Connect Perplexity AI for better responses"
-              >
-                🧠 AI
-              </Button>
-              <Button
-                onClick={handleSOS}
-                size="sm"
-                variant="destructive"
-                className="bg-red-500 hover:bg-red-600 h-8 px-2"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                SOS
-              </Button>
-              <Button
-                onClick={() => setIsOpen(false)}
-                size="sm"
-                variant="ghost"
-                className="text-white hover:bg-white/20 h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+    <>
+      {/* Chat toggle button */}
+      <Button
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 z-50 transition-all duration-300 hover:scale-110"
+        size="lg"
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        {!isOpen && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           </div>
-          {showApiInput && (
-            <div className="mt-2">
-              <Input
-                placeholder="Enter Perplexity API key (optional)"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="text-black text-xs h-8"
-              />
-              <p className="text-xs mt-1 opacity-80">Get free API key at perplexity.ai</p>
-            </div>
-          )}
-        </CardHeader>
-        
-        <CardContent className="p-0 flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-64">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs p-3 rounded-lg text-sm ${
-                    message.sender === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {message.text}
-                </div>
+        )}
+      </Button>
+
+      {/* Enhanced chat window */}
+      {isOpen && (
+        <Card className="fixed bottom-24 right-6 w-96 h-[32rem] shadow-2xl z-40 border-0 bg-white/95 backdrop-blur-sm">
+          <CardHeader className="border-b bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="relative">
+                <Bot className="h-6 w-6" />
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
-            ))}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 p-3 rounded-lg text-sm">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              Smart AI Assistant
+              <Badge variant="secondary" className="ml-auto text-xs bg-white/20 text-white border-0">
+                Online
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="flex flex-col h-80 p-0">
+            {/* Messages area with enhanced styling */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`flex items-start gap-2 max-w-[85%] ${
+                    message.type === 'user' ? 'flex-row-reverse' : 'flex-row'
+                  }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      message.type === 'user' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white'
+                    }`}>
+                      {message.type === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                    </div>
+                    
+                    <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+                      message.type === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-md'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+                    }`}>
+                      <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                        {message.content}
+                      </div>
+                      {message.isVoice && (
+                        <div className="mt-2 text-xs opacity-75 flex items-center gap-1">
+                          <Mic className="h-3 w-3" />
+                          Voice message
+                        </div>
+                      )}
+                      
+                      {/* Quick actions */}
+                      {message.quickActions && message.quickActions.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {message.quickActions.map((action) => (
+                            <Button
+                              key={action.id}
+                              size="sm"
+                              variant="outline"
+                              onClick={action.action}
+                              className="text-xs h-7 bg-white/80 hover:bg-white border-gray-300"
+                            >
+                              {action.icon}
+                              <span className="ml-1">{action.label}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="text-xs opacity-50 mt-2">
+                        {message.timestamp.toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-          
-          <div className="p-3 border-t space-y-2">
-            <div className="flex flex-wrap gap-1">
-              {quickActions.map((action, index) => (
-                <Button
-                  key={index}
-                  onClick={action.action}
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-6 px-2"
-                >
-                  {action.text}
-                </Button>
               ))}
+              
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
             
-            <div className="flex gap-2">
-              <Input
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Ask me anything about rides..."
-                className="flex-1 text-sm"
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              />
-              <Button onClick={handleSendMessage} size="sm" className="px-3">
-                <Send className="h-4 w-4" />
-              </Button>
+            {/* Enhanced input area */}
+            <div className="p-4 border-t bg-white">
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Ask me anything about your ride..."
+                    className="pr-12 rounded-full border-gray-300 focus:border-blue-500"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={isListening ? stopListening : startListening}
+                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full w-8 h-8 p-0 ${
+                      isListening ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => handleSendMessage()}
+                  disabled={!inputValue.trim() || isTyping}
+                  className="rounded-full w-10 h-10 p-0 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="text-xs text-gray-500 mt-2 text-center">
+                🎙️ Voice enabled • 🧠 AI powered • 🚗 Ride optimized
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 };
 
