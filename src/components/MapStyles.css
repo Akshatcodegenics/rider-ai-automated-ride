@@ -1,0 +1,66 @@
+
+/* Map container styling */
+.maplibregl-map {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Custom marker animations */
+@keyframes ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.user-location-marker .animate-ping {
+  animation: ripple 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animation-delay-75 {
+  animation-delay: 0.75s;
+}
+
+/* Driver popup styling */
+.driver-popup .maplibregl-popup-content {
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+  border: 1px solid #e5e7eb;
+  padding: 0;
+}
+
+.driver-popup .maplibregl-popup-tip {
+  border-top-color: white;
+}
+
+/* Map controls styling */
+.maplibregl-ctrl-group {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.maplibregl-ctrl button {
+  border-radius: 6px;
+}
+
+/* Route animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+/* Smooth marker transitions */
+.driver-marker,
+.pickup-marker,
+.destination-marker {
+  transition: all 0.3s ease-in-out;
+}
+
+.driver-marker:hover {
+  transform: scale(1.1);
+  z-index: 1000;
+}

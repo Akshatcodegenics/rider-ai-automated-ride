@@ -1,11 +1,11 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import * as turf from '@turf/turf';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './MapStyles.css';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Navigation, Car } from "lucide-react";
+import { Navigation, Car, MapPin } from "lucide-react";
 
 interface RealisticMapComponentProps {
   pickup?: string;
@@ -22,16 +22,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const [destinationMarker, setDestinationMarker] = useState<maplibregl.Marker | null>(null);
   const [userMarker, setUserMarker] = useState<maplibregl.Marker | null>(null);
   const [driverMarkers, setDriverMarkers] = useState<maplibregl.Marker[]>([]);
-
-  // Indian cities with coordinates for realistic simulation
-  const indianCities = [
-    { name: 'New Delhi', coordinates: [77.2090, 28.6139] as [number, number] },
-    { name: 'Mumbai', coordinates: [72.8777, 19.0760] as [number, number] },
-    { name: 'Bangalore', coordinates: [77.5946, 12.9716] as [number, number] },
-    { name: 'Chennai', coordinates: [80.2707, 13.0827] as [number, number] },
-    { name: 'Hyderabad', coordinates: [78.4867, 17.3850] as [number, number] },
-    { name: 'Kolkata', coordinates: [88.3639, 22.5726] as [number, number] }
-  ];
+  const [routeData, setRouteData] = useState<any>(null);
 
   // Initialize map
   useEffect(() => {
@@ -60,8 +51,10 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   }, []);
 
   const initializeMap = (center: [number, number]) => {
+    if (!mapContainer.current) return;
+
     map.current = new maplibregl.Map({
-      container: mapContainer.current!,
+      container: mapContainer.current,
       style: {
         version: 8,
         sources: {
@@ -80,7 +73,8 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       },
       center: center,
       zoom: 13,
-      attributionControl: false
+      attributionControl: false,
+      antialias: true
     });
 
     // Add navigation controls
@@ -93,8 +87,10 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
     generateNearbyDrivers(center);
 
     map.current.on('load', () => {
+      if (!map.current) return;
+      
       // Add route layer for when pickup and destination are set
-      map.current!.addSource('route', {
+      map.current.addSource('route', {
         type: 'geojson',
         data: {
           type: 'Feature',
@@ -106,7 +102,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
         }
       });
 
-      map.current!.addLayer({
+      map.current.addLayer({
         id: 'route',
         type: 'line',
         source: 'route',
@@ -120,6 +116,22 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
           'line-dasharray': [2, 2]
         }
       });
+
+      // Add route animation
+      map.current.addLayer({
+        id: 'route-animation',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 2,
+          'line-dasharray': [0, 4, 3]
+        }
+      });
     });
   };
 
@@ -128,11 +140,11 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
     // Create custom user location marker with ripple effect
     const userEl = document.createElement('div');
-    userEl.className = 'user-location-marker';
     userEl.innerHTML = `
-      <div class="relative">
-        <div class="absolute w-6 h-6 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-        <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-8 h-8 bg-blue-500 rounded-full animate-ping opacity-75"></div>
+        <div class="absolute w-6 h-6 bg-blue-400 rounded-full animate-ping opacity-50 animation-delay-75"></div>
+        <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg z-10"></div>
       </div>
     `;
 
@@ -146,8 +158,9 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const generateNearbyDrivers = (center: [number, number]) => {
     const drivers = [];
     const vehicleTypes = ['bike', 'auto', 'taxi'];
+    const driverNames = ['Rajesh Kumar', 'Priya Sharma', 'Mohammad Ali', 'Sita Devi', 'Arjun Singh'];
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 5; i++) {
       // Generate random location within 3km radius
       const randomAngle = Math.random() * 2 * Math.PI;
       const randomDistance = Math.random() * 0.03; // ~3km in degrees
@@ -159,12 +172,13 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
       drivers.push({
         id: `driver-${i}`,
-        name: `Driver ${i + 1}`,
+        name: driverNames[i] || `Driver ${i + 1}`,
         vehicleType: vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)],
         location: driverLocation,
-        isAvailable: Math.random() > 0.3,
-        rating: Number((4 + Math.random()).toFixed(1)),
-        eta: Math.floor(Math.random() * 10) + 2
+        isAvailable: Math.random() > 0.2,
+        rating: Number((4.2 + Math.random() * 0.8).toFixed(1)),
+        eta: Math.floor(Math.random() * 8) + 2,
+        vehicleNumber: `DL ${Math.floor(Math.random() * 99)}X ${Math.floor(Math.random() * 9999)}`
       });
     }
 
@@ -183,15 +197,14 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       const availabilityColor = driver.isAvailable ? '#10b981' : '#6b7280';
 
       const el = document.createElement('div');
-      el.className = 'driver-marker';
       el.innerHTML = `
-        <div class="relative">
-          <div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-sm" 
+        <div class="relative cursor-pointer">
+          <div class="w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center text-lg transition-transform hover:scale-110" 
                style="background-color: ${availabilityColor}">
             ${vehicleIcon}
           </div>
-          <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-full border border-gray-300 flex items-center justify-center">
-            <div class="w-2 h-2 rounded-full ${driver.isAvailable ? 'bg-green-500' : 'bg-gray-400'}"></div>
+          <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center">
+            <div class="w-2 h-2 rounded-full ${driver.isAvailable ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>
           </div>
         </div>
       `;
@@ -200,17 +213,42 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
         .setLngLat(driver.location)
         .addTo(map.current!);
 
-      // Add popup with driver info
-      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(`
-          <div class="p-2">
-            <div class="font-medium">${driver.name}</div>
-            <div class="text-sm text-gray-600">${driver.vehicleType.toUpperCase()}</div>
-            <div class="text-sm">⭐ ${driver.rating} • ${driver.eta} min away</div>
-            <div class="text-xs ${driver.isAvailable ? 'text-green-600' : 'text-gray-500'}">
-              ${driver.isAvailable ? 'Available' : 'Busy'}
+      // Add popup with enhanced driver info
+      const popup = new maplibregl.Popup({ offset: 25, className: 'driver-popup' }).setHTML(`
+        <div class="p-3 min-w-48">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="text-lg">${vehicleIcon}</div>
+            <div>
+              <div class="font-semibold text-gray-900">${driver.name}</div>
+              <div class="text-sm text-gray-600">${driver.vehicleNumber}</div>
             </div>
           </div>
-        `);
+          <div class="space-y-1 mb-3">
+            <div class="text-sm flex justify-between">
+              <span class="text-gray-600">Vehicle:</span>
+              <span class="font-medium">${driver.vehicleType.toUpperCase()}</span>
+            </div>
+            <div class="text-sm flex justify-between">
+              <span class="text-gray-600">Rating:</span>
+              <span class="font-medium">⭐ ${driver.rating}</span>
+            </div>
+            <div class="text-sm flex justify-between">
+              <span class="text-gray-600">ETA:</span>
+              <span class="font-medium">${driver.eta} mins</span>
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+              driver.isAvailable 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-gray-100 text-gray-600'
+            }">
+              <div class="w-2 h-2 rounded-full ${driver.isAvailable ? 'bg-green-500' : 'bg-gray-400'}"></div>
+              ${driver.isAvailable ? 'Available Now' : 'On Trip'}
+            </div>
+          </div>
+        </div>
+      `);
 
       marker.setPopup(popup);
       return marker;
@@ -218,8 +256,8 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
     setDriverMarkers(newMarkers);
 
-    // Simulate driver movement every 5 seconds
-    setTimeout(() => simulateDriverMovement(), 5000);
+    // Start driver movement simulation
+    setTimeout(() => simulateDriverMovement(), 3000);
   };
 
   const getVehicleIcon = (type: string) => {
@@ -234,22 +272,31 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const simulateDriverMovement = () => {
     if (!map.current) return;
 
-    setNearbyDrivers(prev => prev.map(driver => {
-      if (Math.random() > 0.7) {
-        const currentLoc = driver.location;
-        const moveDistance = 0.001; // Small movement
-        const angle = Math.random() * 2 * Math.PI;
+    setNearbyDrivers(prev => {
+      const updatedDrivers = prev.map(driver => {
+        if (Math.random() > 0.6) { // 40% chance to move
+          const currentLoc = driver.location;
+          const moveDistance = 0.0008; // Smaller, more realistic movement
+          const angle = Math.random() * 2 * Math.PI;
 
-        return {
-          ...driver,
-          location: [
-            currentLoc[0] + Math.cos(angle) * moveDistance,
-            currentLoc[1] + Math.sin(angle) * moveDistance
-          ]
-        };
-      }
-      return driver;
-    }));
+          return {
+            ...driver,
+            location: [
+              currentLoc[0] + Math.cos(angle) * moveDistance,
+              currentLoc[1] + Math.sin(angle) * moveDistance
+            ]
+          };
+        }
+        return driver;
+      });
+
+      // Update markers with new positions
+      addDriverMarkers(updatedDrivers);
+      return updatedDrivers;
+    });
+
+    // Continue simulation
+    setTimeout(() => simulateDriverMovement(), 5000);
   };
 
   // Geocode location using Nominatim
@@ -283,10 +330,10 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
           const pickupEl = document.createElement('div');
           pickupEl.innerHTML = `
             <div class="flex flex-col items-center">
-              <div class="bg-green-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1 whitespace-nowrap">
+              <div class="bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-xl mb-2 whitespace-nowrap border-2 border-white">
                 📍 Pickup
               </div>
-              <div class="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+              <div class="w-6 h-6 bg-green-500 rounded-full border-3 border-white shadow-lg animate-bounce"></div>
             </div>
           `;
 
@@ -307,10 +354,10 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
           const destEl = document.createElement('div');
           destEl.innerHTML = `
             <div class="flex flex-col items-center">
-              <div class="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium shadow-lg mb-1 whitespace-nowrap">
+              <div class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-xl mb-2 whitespace-nowrap border-2 border-white">
                 🎯 Drop
               </div>
-              <div class="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-lg"></div>
+              <div class="w-6 h-6 bg-red-500 rounded-full border-3 border-white shadow-lg animate-bounce"></div>
             </div>
           `;
 
@@ -335,14 +382,15 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
             { npoints: 100 }
           );
 
+          setRouteData(route);
           (map.current.getSource('route') as maplibregl.GeoJSONSource).setData(route);
 
-          // Fit map to show both points
+          // Fit map to show both points with padding
           const bounds = new maplibregl.LngLatBounds()
             .extend(pickupCoords)
             .extend(destCoords);
 
-          map.current.fitBounds(bounds, { padding: 50 });
+          map.current.fitBounds(bounds, { padding: 80, duration: 1000 });
         }
       }
     };
@@ -355,34 +403,66 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       map.current.easeTo({
         center: userLocation,
         zoom: 15,
-        duration: 1000
+        duration: 1500,
+        essential: true
       });
     }
   };
 
+  const availableDriversCount = nearbyDrivers.filter(d => d.isAvailable).length;
+  const totalDriversCount = nearbyDrivers.length;
+
   return (
-    <Card className="border-0 shadow-lg overflow-hidden">
+    <Card className="border-0 shadow-xl overflow-hidden bg-white">
       <div className="relative">
-        <div ref={mapContainer} className="w-full h-96" />
+        <div 
+          ref={mapContainer} 
+          className="w-full h-96 bg-gray-100"
+          style={{ minHeight: '384px' }}
+        />
         
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <Button
             size="sm"
             variant="outline"
             onClick={centerToUserLocation}
-            className="bg-white/90 backdrop-blur-sm"
+            className="bg-white/95 backdrop-blur-sm hover:bg-white shadow-lg border-0"
+            title="Center to my location"
           >
-            <Navigation className="h-4 w-4" />
+            <Navigation className="h-4 w-4 text-blue-600" />
           </Button>
         </div>
 
         {nearbyDrivers.length > 0 && (
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-            <div className="text-sm font-medium text-gray-900 mb-1">
-              🚗 {nearbyDrivers.filter(d => d.isAvailable).length} drivers nearby
+          <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-2xl">🚗</div>
+              <div>
+                <div className="text-sm font-bold text-gray-900">
+                  {availableDriversCount} of {totalDriversCount} drivers nearby
+                </div>
+                <div className="text-xs text-gray-600">
+                  ₹40-180 estimated fare range
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-gray-600">
-              ₹40-120 estimated fare
+            <div className="flex gap-1">
+              {nearbyDrivers.slice(0, 3).map((driver, index) => (
+                <div 
+                  key={driver.id}
+                  className="text-xs bg-gray-100 px-2 py-1 rounded-full"
+                >
+                  {getVehicleIcon(driver.vehicleType)} {driver.eta}min
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {routeData && (
+          <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg">
+            <div className="text-xs font-medium">
+              🛣️ Route Active
             </div>
           </div>
         )}
