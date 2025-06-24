@@ -10,6 +10,14 @@ const Navbar = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav className="bg-white/80 backdrop-blur-md shadow-sm fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,17 +60,23 @@ const Navbar = () => {
               >
                 🤖 AI Automated Booking
               </Link>
-              <a href="#features" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              <button 
+                onClick={() => scrollToSection('features')}
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
                 ✨ Features
-              </a>
-              <a href="#contact" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              </button>
+              <button 
+                onClick={() => scrollToSection('contact')}
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
                 📞 Contact
-              </a>
+              </button>
             </div>
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/driver-login">
+            <Link to="/driver-panel">
               <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
                 🚗 Driver Login
               </Button>
@@ -96,6 +110,7 @@ const Navbar = () => {
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-700 hover:text-blue-600'
               }`}
+              onClick={() => setIsMenuOpen(false)}
             >
               🏠 Home
             </Link>
@@ -106,6 +121,7 @@ const Navbar = () => {
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-700 hover:text-blue-600'
               }`}
+              onClick={() => setIsMenuOpen(false)}
             >
               🚙 Book a Ride
             </Link>
@@ -116,22 +132,29 @@ const Navbar = () => {
                   ? 'text-blue-600 bg-blue-50' 
                   : 'text-gray-700 hover:text-blue-600'
               }`}
+              onClick={() => setIsMenuOpen(false)}
             >
               🤖 AI Automated Booking
             </Link>
-            <a href="#features" className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            <button 
+              onClick={() => scrollToSection('features')}
+              className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium w-full text-left"
+            >
               ✨ Features
-            </a>
-            <a href="#contact" className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            </button>
+            <button 
+              onClick={() => scrollToSection('contact')}
+              className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium w-full text-left"
+            >
               📞 Contact
-            </a>
+            </button>
             <div className="flex flex-col space-y-2 px-3 pt-2">
-              <Link to="/driver-login">
+              <Link to="/driver-panel" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="outline" className="w-full text-blue-600 border-blue-600 hover:bg-blue-50">
                   🚗 Driver Login
                 </Button>
               </Link>
-              <Link to="/rider-login">
+              <Link to="/rider-login" onClick={() => setIsMenuOpen(false)}>
                 <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                   👤 Rider Login
                 </Button>

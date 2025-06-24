@@ -19,6 +19,8 @@ import PaymentSplitter from "@/components/PaymentSplitter";
 import LoyaltyRewards from "@/components/LoyaltyRewards";
 import NotificationCenter from "@/components/NotificationCenter";
 
+type ActiveTab = 'book' | 'schedule' | 'split' | 'rewards';
+
 const BookRide = () => {
   const [selectedVehicle, setSelectedVehicle] = useState('taxi');
   const [pickup, setPickup] = useState('');
@@ -30,7 +32,7 @@ const BookRide = () => {
   const [selectedRoute, setSelectedRoute] = useState<any>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(1250);
-  const [activeTab, setActiveTab] = useState<'book' | 'schedule' | 'split' | 'rewards'>('book');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('book');
   const [selectedDriver, setSelectedDriver] = useState<any>(null);
 
   const handleVoiceLocationDetected = (voicePickup: string, voiceDestination: string) => {
@@ -39,6 +41,11 @@ const BookRide = () => {
   };
 
   const handleBookRide = async () => {
+    if (!pickup || !destination) {
+      alert('Please enter both pickup and destination locations');
+      return;
+    }
+    
     setIsBooking(true);
     
     const bookingData = {
@@ -54,11 +61,9 @@ const BookRide = () => {
     
     console.log('Advanced booking with data:', bookingData);
     
-    // Simulate real booking process
     setTimeout(() => {
       setIsBooking(false);
       
-      // Add loyalty points
       const earnedPoints = Math.floor(estimatedFare * 0.1);
       setLoyaltyPoints(prev => prev + earnedPoints);
       
@@ -78,24 +83,15 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
     }, 2000);
   };
 
-  const calculateMultipleRoutes = () => {
-    const routes = [
-      { name: 'AI Optimized Route', time: '25 mins', distance: '12.5 km', fare: estimatedFare, eco: true },
-      { name: 'Fastest Route', time: '22 mins', distance: '14.1 km', fare: estimatedFare * 1.15, eco: false },
-      { name: 'Most Economical', time: '35 mins', distance: '10.2 km', fare: estimatedFare * 0.85, eco: true },
-      { name: 'Avoid Traffic', time: '28 mins', distance: '13.8 km', fare: estimatedFare * 0.95, eco: false }
-    ];
-    
-    alert(`🛣️ Smart Route Options:\n\n${routes.map(route => 
-      `${route.name}: ${route.time} (${route.distance}) - ₹${route.fare.toFixed(2)} ${route.eco ? '🌱' : ''}`
-    ).join('\n')}`);
-  };
-
   const handlePaymentComplete = (splitDetails: any) => {
     console.log('Payment completed:', splitDetails);
   };
 
   const finalFare = femaleDriverPreference ? estimatedFare * 1.15 : estimatedFare;
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId as ActiveTab);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -103,7 +99,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
       
       <EmergencySOS userLocation={userLocation} />
       
-      {/* Notification button */}
       <Button
         className="fixed top-20 right-20 z-40 rounded-full w-12 h-12 shadow-xl bg-white hover:bg-gray-50 text-gray-700"
         onClick={() => setShowNotifications(true)}
@@ -129,7 +124,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
               Next-generation ride booking with AI optimization, voice commands, payment splitting, and comprehensive safety features
             </p>
             
-            {/* Feature badges */}
             <div className="flex justify-center gap-2 mt-4 flex-wrap">
               <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                 <Zap className="h-3 w-3 mr-1" />
@@ -147,7 +141,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
             </div>
           </div>
 
-          {/* Tab Navigation */}
           <div className="flex justify-center mb-8">
             <div className="bg-white rounded-xl shadow-lg p-1 flex">
               {[
@@ -159,7 +152,7 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? 'default' : 'ghost'}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => handleTabChange(tab.id)}
                   className="flex items-center gap-2 px-6"
                 >
                   {tab.icon}
@@ -170,7 +163,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Forms and Features */}
             <div className="lg:col-span-2 space-y-6">
               {activeTab === 'book' && (
                 <>
@@ -249,18 +241,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
                           <span className="text-gray-600">Loyalty Points to Earn:</span>
                           <span className="font-semibold text-purple-600">+{Math.floor(finalFare * 0.1)} points</span>
                         </div>
-
-                        {pickup && destination && (
-                          <Button 
-                            onClick={calculateMultipleRoutes}
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full mt-3"
-                          >
-                            <Route className="h-4 w-4 mr-2" />
-                            Compare All Route Options
-                          </Button>
-                        )}
                       </div>
                       <div className="mt-4 text-sm text-gray-500">
                         *AI-powered dynamic pricing based on traffic, weather, demand, and route optimization
@@ -313,7 +293,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
               )}
             </div>
 
-            {/* Right Column - Map and Driver Info */}
             <div className="space-y-6">
               <RealisticMapComponent 
                 pickup={pickup} 
@@ -332,7 +311,6 @@ ${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
                 />
               )}
               
-              {/* Real-time stats */}
               <Card className="border-0 shadow-lg bg-gradient-to-r from-green-500 to-blue-500 text-white">
                 <CardContent className="p-4">
                   <div className="text-center">

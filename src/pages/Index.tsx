@@ -8,6 +8,7 @@ import FeaturesSection from "@/components/FeaturesSection";
 import ServicesSection from "@/components/ServicesSection";
 import StatsSection from "@/components/StatsSection";
 import ContactSection from "@/components/ContactSection";
+import CustomerReviews from "@/components/CustomerReviews";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -19,6 +20,9 @@ const Index = () => {
       <FeaturesSection />
       <ServicesSection />
       <StatsSection />
+      <div id="reviews" className="py-16">
+        <CustomerReviews />
+      </div>
       <ContactSection />
       <Footer />
     </div>
