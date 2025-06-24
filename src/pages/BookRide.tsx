@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import MapComponent from "@/components/MapComponent";
+import RealisticMapComponent from "@/components/RealisticMapComponent";
 import VehicleSelector from "@/components/VehicleSelector";
 import RideBookingForm from "@/components/RideBookingForm";
 import AIChatbot from "@/components/AIChatbot";
@@ -152,7 +151,7 @@ Driver will arrive in 5-8 minutes.`);
             </div>
 
             <div className="lg:sticky lg:top-24 h-fit">
-              <MapComponent pickup={pickup} destination={destination} />
+              <RealisticMapComponent pickup={pickup} destination={destination} />
             </div>
           </div>
         </div>
