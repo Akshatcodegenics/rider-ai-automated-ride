@@ -73,8 +73,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       },
       center: center,
       zoom: 13,
-      attributionControl: false,
-      antialias: true
+      attributionControl: false
     });
 
     // Add navigation controls
