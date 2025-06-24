@@ -16,9 +16,10 @@ const VoiceBooking = ({ onLocationDetected }: VoiceBookingProps) => {
 
   useEffect(() => {
     // Check if speech recognition is supported
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognitionAPI) {
+      const recognitionInstance = new SpeechRecognitionAPI() as SpeechRecognition;
       
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = true;
@@ -29,7 +30,7 @@ const VoiceBooking = ({ onLocationDetected }: VoiceBookingProps) => {
         speak("I'm listening. Say something like 'Book a ride from Connaught Place to Mumbai Airport'");
       };
       
-      recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
         const current = event.resultIndex;
         const transcriptResult = event.results[current][0].transcript;
         setTranscript(transcriptResult);
@@ -39,7 +40,7 @@ const VoiceBooking = ({ onLocationDetected }: VoiceBookingProps) => {
         }
       };
       
-      recognitionInstance.onerror = (event) => {
+      recognitionInstance.onerror = (event: SpeechRecognitionError) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         speak("Sorry, I couldn't understand. Please try again.");
