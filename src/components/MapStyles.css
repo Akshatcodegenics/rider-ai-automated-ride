@@ -1,7 +1,24 @@
 
-/* Map container styling */
+/* Map container styling with better visibility */
 .maplibregl-map {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure map canvas is visible */
+.maplibregl-canvas {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Map container fixes */
+.maplibregl-map .maplibregl-canvas-container {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* Custom marker animations */
@@ -30,20 +47,34 @@
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
   border: 1px solid #e5e7eb;
   padding: 0;
+  max-width: 280px;
 }
 
 .driver-popup .maplibregl-popup-tip {
   border-top-color: white;
 }
 
+.driver-popup .maplibregl-popup-close-button {
+  color: #6b7280;
+  font-size: 18px;
+  padding: 8px;
+}
+
 /* Map controls styling */
 .maplibregl-ctrl-group {
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border: none;
 }
 
 .maplibregl-ctrl button {
   border-radius: 6px;
+  background: white;
+  border: none;
+}
+
+.maplibregl-ctrl button:hover {
+  background: #f3f4f6;
 }
 
 /* Route animation */
@@ -63,4 +94,68 @@
 .driver-marker:hover {
   transform: scale(1.1);
   z-index: 1000;
+}
+
+/* Enhanced marker hover effects */
+.maplibregl-marker {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.maplibregl-marker:hover {
+  transform: scale(1.05);
+}
+
+/* Attribution control positioning */
+.maplibregl-ctrl-attrib {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* Loading overlay */
+.map-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(243, 244, 246, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Ensure map visibility */
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* Fix for mobile devices */
+@media (max-width: 768px) {
+  .driver-popup .maplibregl-popup-content {
+    max-width: 240px;
+  }
+}
+
+/* Prevent map from being hidden behind other elements */
+.maplibregl-map {
+  z-index: 1;
+}
+
+/* Smooth animations for driver movements */
+@keyframes driverMove {
+  from {
+    transform: translateX(0) translateY(0);
+  }
+  to {
+    transform: translateX(var(--move-x, 0)) translateY(var(--move-y, 0));
+  }
+}
+
+.driver-moving {
+  animation: driverMove 3s ease-in-out;
 }

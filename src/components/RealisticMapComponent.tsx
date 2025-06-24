@@ -5,7 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapStyles.css';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Navigation, Car, MapPin } from "lucide-react";
+import { Navigation, Car, MapPin, AlertTriangle } from "lucide-react";
 
 interface RealisticMapComponentProps {
   pickup?: string;
@@ -23,8 +23,10 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const [userMarker, setUserMarker] = useState<maplibregl.Marker | null>(null);
   const [driverMarkers, setDriverMarkers] = useState<maplibregl.Marker[]>([]);
   const [routeData, setRouteData] = useState<any>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
-  // Initialize map
+  // Initialize map with better error handling
   useEffect(() => {
     if (!mapContainer.current) return;
 
@@ -35,11 +37,17 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
         setUserLocation(userLoc);
         initializeMap(userLoc);
       },
-      () => {
+      (error) => {
+        console.warn('Geolocation error:', error);
         // Default to Delhi if geolocation fails
         const defaultLoc: [number, number] = [77.2090, 28.6139];
         setUserLocation(defaultLoc);
         initializeMap(defaultLoc);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
       }
     );
 
@@ -53,85 +61,100 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const initializeMap = (center: [number, number]) => {
     if (!mapContainer.current) return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          'osm-tiles': {
+    try {
+      map.current = new maplibregl.Map({
+        container: mapContainer.current,
+        style: {
+          version: 8,
+          sources: {
+            'osm-tiles': {
+              type: 'raster',
+              tiles: ['https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          layers: [{
+            id: 'osm-tiles',
             type: 'raster',
-            tiles: ['https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
+            source: 'osm-tiles'
+          }]
+        },
+        center: center,
+        zoom: 13,
+        attributionControl: false
+      });
+
+      // Add navigation controls
+      map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+      // Add user location marker with ripple effect
+      addUserLocationMarker(center);
+
+      // Generate and add nearby drivers
+      generateNearbyDrivers(center);
+
+      map.current.on('load', () => {
+        if (!map.current) return;
+        
+        setMapLoaded(true);
+        setMapError(null);
+        
+        // Add route layer for when pickup and destination are set
+        map.current.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: []
+            }
           }
-        },
-        layers: [{
-          id: 'osm-tiles',
-          type: 'raster',
-          source: 'osm-tiles'
-        }]
-      },
-      center: center,
-      zoom: 13,
-      attributionControl: false
-    });
+        });
 
-    // Add navigation controls
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    // Add user location marker with ripple effect
-    addUserLocationMarker(center);
-
-    // Generate and add nearby drivers
-    generateNearbyDrivers(center);
-
-    map.current.on('load', () => {
-      if (!map.current) return;
-      
-      // Add route layer for when pickup and destination are set
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: []
+        map.current.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#3b82f6',
+            'line-width': 5,
+            'line-opacity': 0.8
           }
-        }
+        });
+
+        // Add route animation layer
+        map.current.addLayer({
+          id: 'route-animation',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#ffffff',
+            'line-width': 3,
+            'line-dasharray': [2, 4],
+            'line-opacity': 0.9
+          }
+        });
       });
 
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 4,
-          'line-dasharray': [2, 2]
-        }
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
+        setMapError('Failed to load map. Please check your internet connection.');
       });
 
-      // Add route animation
-      map.current.addLayer({
-        id: 'route-animation',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#ffffff',
-          'line-width': 2,
-          'line-dasharray': [0, 4, 3]
-        }
-      });
-    });
+    } catch (error) {
+      console.error('Map initialization error:', error);
+      setMapError('Failed to initialize map.');
+    }
   };
 
   const addUserLocationMarker = (location: [number, number]) => {
@@ -156,13 +179,13 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
   const generateNearbyDrivers = (center: [number, number]) => {
     const drivers = [];
-    const vehicleTypes = ['bike', 'auto', 'taxi'];
-    const driverNames = ['Rajesh Kumar', 'Priya Sharma', 'Mohammad Ali', 'Sita Devi', 'Arjun Singh'];
+    const vehicleTypes = ['bike', 'auto', 'taxi', 'suv'];
+    const driverNames = ['Rajesh Kumar', 'Priya Sharma', 'Mohammad Ali', 'Sita Devi', 'Arjun Singh', 'Kavitha Nair', 'Suresh Patel'];
 
-    for (let i = 0; i < 5; i++) {
-      // Generate random location within 3km radius
+    for (let i = 0; i < 7; i++) {
+      // Generate random location within 5km radius
       const randomAngle = Math.random() * 2 * Math.PI;
-      const randomDistance = Math.random() * 0.03; // ~3km in degrees
+      const randomDistance = Math.random() * 0.05; // ~5km in degrees
 
       const driverLocation: [number, number] = [
         center[0] + Math.cos(randomAngle) * randomDistance,
@@ -174,10 +197,11 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
         name: driverNames[i] || `Driver ${i + 1}`,
         vehicleType: vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)],
         location: driverLocation,
-        isAvailable: Math.random() > 0.2,
-        rating: Number((4.2 + Math.random() * 0.8).toFixed(1)),
-        eta: Math.floor(Math.random() * 8) + 2,
-        vehicleNumber: `DL ${Math.floor(Math.random() * 99)}X ${Math.floor(Math.random() * 9999)}`
+        isAvailable: Math.random() > 0.3,
+        rating: Number((4.1 + Math.random() * 0.9).toFixed(1)),
+        eta: Math.floor(Math.random() * 12) + 2,
+        vehicleNumber: `DL ${Math.floor(Math.random() * 99)}X ${Math.floor(Math.random() * 9999)}`,
+        fare: Math.floor(Math.random() * 100) + 50
       });
     }
 
@@ -197,8 +221,8 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
       const el = document.createElement('div');
       el.innerHTML = `
-        <div class="relative cursor-pointer">
-          <div class="w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center text-lg transition-transform hover:scale-110" 
+        <div class="relative cursor-pointer transition-all duration-300 hover:scale-110">
+          <div class="w-10 h-10 rounded-full border-3 border-white shadow-lg flex items-center justify-center text-lg" 
                style="background-color: ${availabilityColor}">
             ${vehicleIcon}
           </div>
@@ -212,17 +236,17 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
         .setLngLat(driver.location)
         .addTo(map.current!);
 
-      // Add popup with enhanced driver info
+      // Enhanced popup with driver info
       const popup = new maplibregl.Popup({ offset: 25, className: 'driver-popup' }).setHTML(`
-        <div class="p-3 min-w-48">
-          <div class="flex items-center gap-2 mb-2">
-            <div class="text-lg">${vehicleIcon}</div>
+        <div class="p-4 min-w-52">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="text-xl">${vehicleIcon}</div>
             <div>
-              <div class="font-semibold text-gray-900">${driver.name}</div>
+              <div class="font-bold text-gray-900">${driver.name}</div>
               <div class="text-sm text-gray-600">${driver.vehicleNumber}</div>
             </div>
           </div>
-          <div class="space-y-1 mb-3">
+          <div class="space-y-2 mb-3">
             <div class="text-sm flex justify-between">
               <span class="text-gray-600">Vehicle:</span>
               <span class="font-medium">${driver.vehicleType.toUpperCase()}</span>
@@ -235,9 +259,13 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
               <span class="text-gray-600">ETA:</span>
               <span class="font-medium">${driver.eta} mins</span>
             </div>
+            <div class="text-sm flex justify-between">
+              <span class="text-gray-600">Fare:</span>
+              <span class="font-medium text-green-600">₹${driver.fare}</span>
+            </div>
           </div>
           <div class="text-center">
-            <div class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+            <div class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
               driver.isAvailable 
                 ? 'bg-green-100 text-green-700' 
                 : 'bg-gray-100 text-gray-600'
@@ -256,7 +284,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
     setDriverMarkers(newMarkers);
 
     // Start driver movement simulation
-    setTimeout(() => simulateDriverMovement(), 3000);
+    setTimeout(() => simulateDriverMovement(), 4000);
   };
 
   const getVehicleIcon = (type: string) => {
@@ -264,6 +292,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       case 'bike': return '🏍️';
       case 'auto': return '🛺';
       case 'taxi': return '🚗';
+      case 'suv': return '🚙';
       default: return '🚗';
     }
   };
@@ -273,9 +302,9 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
 
     setNearbyDrivers(prev => {
       const updatedDrivers = prev.map(driver => {
-        if (Math.random() > 0.6) { // 40% chance to move
+        if (Math.random() > 0.4) { // 60% chance to move
           const currentLoc = driver.location;
-          const moveDistance = 0.0008; // Smaller, more realistic movement
+          const moveDistance = 0.001; // Realistic movement
           const angle = Math.random() * 2 * Math.PI;
 
           return {
@@ -283,7 +312,8 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
             location: [
               currentLoc[0] + Math.cos(angle) * moveDistance,
               currentLoc[1] + Math.sin(angle) * moveDistance
-            ]
+            ],
+            eta: Math.max(1, driver.eta + (Math.random() > 0.5 ? 1 : -1))
           };
         }
         return driver;
@@ -295,7 +325,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
     });
 
     // Continue simulation
-    setTimeout(() => simulateDriverMovement(), 5000);
+    setTimeout(() => simulateDriverMovement(), 8000);
   };
 
   // Geocode location using Nominatim
@@ -318,7 +348,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   // Update pickup and destination markers
   useEffect(() => {
     const updateMarkers = async () => {
-      if (!map.current) return;
+      if (!map.current || !mapLoaded) return;
 
       // Update pickup marker
       if (pickup) {
@@ -369,16 +399,16 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
       }
 
       // Draw route if both locations exist
-      if (pickup && destination) {
+      if (pickup && destination && map.current.getSource('route')) {
         const pickupCoords = await geocodeLocation(pickup);
         const destCoords = await geocodeLocation(destination);
 
-        if (pickupCoords && destCoords && map.current.getSource('route')) {
-          // Create a curved route using turf.js
+        if (pickupCoords && destCoords) {
+          // Create a more realistic curved route using turf.js
           const route = turf.greatCircle(
             turf.point(pickupCoords),
             turf.point(destCoords),
-            { npoints: 100 }
+            { npoints: 150 }
           );
 
           setRouteData(route);
@@ -389,20 +419,20 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
             .extend(pickupCoords)
             .extend(destCoords);
 
-          map.current.fitBounds(bounds, { padding: 80, duration: 1000 });
+          map.current.fitBounds(bounds, { padding: 100, duration: 1500 });
         }
       }
     };
 
     updateMarkers();
-  }, [pickup, destination]);
+  }, [pickup, destination, mapLoaded]);
 
   const centerToUserLocation = () => {
     if (map.current && userLocation) {
       map.current.easeTo({
         center: userLocation,
         zoom: 15,
-        duration: 1500,
+        duration: 2000,
         essential: true
       });
     }
@@ -411,14 +441,40 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
   const availableDriversCount = nearbyDrivers.filter(d => d.isAvailable).length;
   const totalDriversCount = nearbyDrivers.length;
 
+  if (mapError) {
+    return (
+      <Card className="border-0 shadow-xl overflow-hidden bg-white">
+        <div className="flex items-center justify-center h-96 bg-gray-50">
+          <div className="text-center p-6">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Map Loading Failed</h3>
+            <p className="text-gray-600 mb-4">{mapError}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Retry
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-0 shadow-xl overflow-hidden bg-white">
       <div className="relative">
         <div 
           ref={mapContainer} 
-          className="w-full h-96 bg-gray-100"
+          className="w-full h-96 bg-gray-100 relative"
           style={{ minHeight: '384px' }}
         />
+        
+        {!mapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+              <p className="text-gray-600">Loading map...</p>
+            </div>
+          </div>
+        )}
         
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <Button
@@ -432,7 +488,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
           </Button>
         </div>
 
-        {nearbyDrivers.length > 0 && (
+        {nearbyDrivers.length > 0 && mapLoaded && (
           <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-gray-200">
             <div className="flex items-center gap-2 mb-2">
               <div className="text-2xl">🚗</div>
@@ -441,12 +497,12 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
                   {availableDriversCount} of {totalDriversCount} drivers nearby
                 </div>
                 <div className="text-xs text-gray-600">
-                  ₹40-180 estimated fare range
+                  ₹50-200 estimated fare range
                 </div>
               </div>
             </div>
-            <div className="flex gap-1">
-              {nearbyDrivers.slice(0, 3).map((driver, index) => (
+            <div className="flex gap-1 flex-wrap">
+              {nearbyDrivers.slice(0, 4).map((driver, index) => (
                 <div 
                   key={driver.id}
                   className="text-xs bg-gray-100 px-2 py-1 rounded-full"
@@ -458,7 +514,7 @@ const RealisticMapComponent = ({ pickup, destination, onLocationSelect }: Realis
           </div>
         )}
 
-        {routeData && (
+        {routeData && mapLoaded && (
           <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg">
             <div className="text-xs font-medium">
               🛣️ Route Active
