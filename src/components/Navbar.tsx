@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, Bell } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
@@ -11,11 +11,22 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Close mobile menu first
     setIsMenuOpen(false);
+    
+    // If we're not on the home page, navigate there first
+    if (location.pathname !== '/') {
+      window.location.href = `/#${sectionId}`;
+      return;
+    }
+    
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   return (
@@ -76,6 +87,19 @@ const Navbar = () => {
           </div>
           
           <div className="hidden md:flex items-center space-x-4">
+            <Link to="/profile">
+              <Button variant="outline" className="text-gray-600 border-gray-300 hover:bg-gray-50">
+                <User className="h-4 w-4 mr-1" />
+                Profile
+              </Button>
+            </Link>
+            <Link to="/notifications">
+              <Button variant="outline" className="text-gray-600 border-gray-300 hover:bg-gray-50 relative">
+                <Bell className="h-4 w-4 mr-1" />
+                Notifications
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+              </Button>
+            </Link>
             <Link to="/driver-panel">
               <Button variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
                 🚗 Driver Login
@@ -149,6 +173,18 @@ const Navbar = () => {
               📞 Contact
             </button>
             <div className="flex flex-col space-y-2 px-3 pt-2">
+              <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                <Button variant="outline" className="w-full text-gray-600 border-gray-300 hover:bg-gray-50">
+                  <User className="h-4 w-4 mr-1" />
+                  Profile
+                </Button>
+              </Link>
+              <Link to="/notifications" onClick={() => setIsMenuOpen(false)}>
+                <Button variant="outline" className="w-full text-gray-600 border-gray-300 hover:bg-gray-50">
+                  <Bell className="h-4 w-4 mr-1" />
+                  Notifications
+                </Button>
+              </Link>
               <Link to="/driver-panel" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="outline" className="w-full text-blue-600 border-blue-600 hover:bg-blue-50">
                   🚗 Driver Login

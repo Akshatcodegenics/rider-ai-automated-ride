@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Route, Bell, Gift, Users, Calendar, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import RealisticMapComponent from "@/components/RealisticMapComponent";
 import VehicleSelector from "@/components/VehicleSelector";
@@ -22,6 +23,7 @@ import NotificationCenter from "@/components/NotificationCenter";
 type ActiveTab = 'book' | 'schedule' | 'split' | 'rewards';
 
 const BookRide = () => {
+  const navigate = useNavigate();
   const [selectedVehicle, setSelectedVehicle] = useState('taxi');
   const [pickup, setPickup] = useState('');
   const [destination, setDestination] = useState('');
@@ -67,19 +69,14 @@ const BookRide = () => {
       const earnedPoints = Math.floor(estimatedFare * 0.1);
       setLoyaltyPoints(prev => prev + earnedPoints);
       
-      alert(`🚗 Smart Ride Booked Successfully! 
+      // Store booking data in localStorage for payment page
+      localStorage.setItem('pendingBooking', JSON.stringify({
+        ...bookingData,
+        finalFare: femaleDriverPreference ? estimatedFare * 1.15 : estimatedFare
+      }));
       
-✅ Pickup: ${pickup}
-🎯 Destination: ${destination}
-🚙 Vehicle: ${selectedVehicle.toUpperCase()}
-💰 Fare: ₹${estimatedFare.toFixed(2)}
-${femaleDriverPreference ? '👩 Female Driver: Requested' : ''}
-${selectedRoute ? `🛣️ Route: ${selectedRoute.name}` : ''}
-${selectedDriver ? `👨‍✈️ Driver: ${selectedDriver.name}` : ''}
-🏆 Points Earned: +${earnedPoints}
-
-🕐 Driver will arrive in 5-8 minutes.
-📱 Track your ride in real-time!`);
+      // Redirect to payment page
+      navigate('/payment');
     }, 2000);
   };
 
