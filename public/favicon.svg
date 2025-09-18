@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 200" width="32" height="32">
+  <!-- Background -->
+  <rect width="500" height="200" fill="#f5f5f5"/>
+  
+  <!-- RIDE text -->
+  <text x="50" y="150" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#8B4513">RI</text>
+  <text x="250" y="150" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#333">DE</text>
+  
+  <!-- Clock tower -->
+  <rect x="240" y="60" width="20" height="80" fill="#8B4513"/>
+  <circle cx="250" cy="50" r="15" fill="#8B4513"/>
+  <circle cx="250" cy="50" r="8" fill="white"/>
+  <line x1="250" y1="50" x2="250" y2="42" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="50" x2="256" y2="50" stroke="#333" stroke-width="2"/>
+  
+  <!-- Bicycle wheel -->
+  <circle cx="400" cy="100" r="40" fill="none" stroke="#8B4513" stroke-width="4"/>
+  <g stroke="#8B4513" stroke-width="2">
+    <line x1="360" y1="100" x2="440" y2="100"/>
+    <line x1="400" y1="60" x2="400" y2="140"/>
+    <line x1="372" y1="72" x2="428" y2="128"/>
+    <line x1="428" y1="72" x2="372" y2="128"/>
+  </g>
+  <circle cx="400" cy="100" r="8" fill="#8B4513"/>
+  
+  <!-- Chain links -->
+  <circle cx="450" cy="80" r="8" fill="none" stroke="#333" stroke-width="3"/>
+  <circle cx="470" cy="100" r="8" fill="none" stroke="#333" stroke-width="3"/>
+  <circle cx="450" cy="120" r="8" fill="none" stroke="#333" stroke-width="3"/>
+</svg>

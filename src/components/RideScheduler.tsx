@@ -99,8 +99,7 @@ const RideScheduler = ({ pickup, destination, estimatedFare, selectedVehicle }: 
       setTimeout(() => {
         if (Notification.permission === 'granted') {
           new Notification(`Ride Reminder - ${ride.reminderMinutes} minutes`, {
-            body: `Your ride from ${ride.pickup} to ${ride.destination} is scheduled for ${ride.time}`,
-            icon: '/favicon.ico'
+            body: `Your ride from ${ride.pickup} to ${ride.destination} is scheduled for ${ride.time}`
           });
         }
         
