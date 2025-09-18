@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+# 🚖 RideOn - Smart Ride Booking Platform
 
-## Project info
+**RideOn** is a full-featured ride-booking web application, inspired by platforms like Rapido, built with user convenience, AI-powered automation, and driver-first policies in mind. It provides seamless ride scheduling, subscription-based travel, and special safety features, all wrapped in a modern and responsive UI.
+---
 
-**URL**: https://lovable.dev/projects/dfcbe442-56e4-4bbb-9e39-8b1208c979d5
+## 🌟 Features
 
-## How can I edit this code?
+### 🚗 Ride Booking (Just Like Rapido)
+- Real-time ride booking for bikes, autos, or cabs.
+- Live driver tracking, fare calculation, ride history, and ratings.
 
-There are several ways of editing your application.
+### 🛡️ Pink Taxi & SOS for Women
+- Special ride option with female drivers.
+- SOS emergency button for real-time alerts and fast response.
 
-**Use Lovable**
+### 🧠 AI-Powered Assistant
+- AI Chatbot for auto-booking based on user habits.
+- Voice typing for hands-free ride scheduling.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/dfcbe442-56e4-4bbb-9e39-8b1208c979d5) and start prompting.
+### 📅 Route Subscriptions
+- Book a fixed route once and ride daily without rebooking.
+- Available for **monthly or yearly** plans.
+- System auto-assigns a driver daily for subscribed users.
 
-Changes made via Lovable will be committed automatically to this repo.
+### 💼 Driver Subscription (No Commission!)
+- Drivers can subscribe monthly.
+- **No commission or service fees** during the subscription period.
+- Helps maximize driver earnings—**highlighted as the most essential driver benefit**.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend:** React.js / Next.js
+- **Backend:** Node.js / Express or Supabase
+- **Database:** PostgreSQL / Firebase
+- **Authentication:** Firebase Auth / Supabase
+- **AI & Chatbot:** OpenAI / Dialogflow / Google Cloud NLP
+- **Voice Input:** Web Speech API / Google Speech-to-Text
+- **Map & Geo:** Google Maps API / Mapbox
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📂 Project Structure
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+rideon/ ├── public/ ├── src/ │ ├── assets/ # Logo and media │ ├── components/ # Reusable components │ ├── pages/ # App pages and routes │ ├── services/ # API and AI integration │ └── styles/ # Global and component styles ├── .env ├── README.md └── package.json
 
-# Step 3: Install the necessary dependencies.
-npm i
+yaml
+Copy
+Edit
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js ≥ 18
+- npm / yarn
+- Firebase or Supabase project (for auth & DB)
+- Google Cloud or OpenAI API keys
+
+### Installation
+``bash
+git clone https://github.com/yourusername/rideon.git
+cd rideon
+npm install
 npm run dev
-```
+🌍 Deployment
+We recommend using:
 
-**Edit a file directly in GitHub**
+Vercel or Netlify for frontend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Firebase / Supabase for backend services
 
-**Use GitHub Codespaces**
+## 🙌 Contribution
+We welcome contributions!
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Fork the repo
 
-## What technologies are used for this project?
+Create a feature branch (git checkout -b feature-name)
 
-This project is built with:
+Commit your changes (git commit -m "Added new feature")
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Push to the branch (git push origin feature-name)
 
-## How can I deploy this project?
+Create a Pull Request
 
-Simply open [Lovable](https://lovable.dev/projects/dfcbe442-56e4-4bbb-9e39-8b1208c979d5) and click on Share -> Publish.
+📧 Contact
+Have questions or feedback? Reach out:
 
-## Can I connect a custom domain to my Lovable project?
+📬 Email: akshatr056@gmail.com
 
-Yes, you can!
+🌐 Website: 
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Ride smart. Ride safe. RideOn. 🚀
